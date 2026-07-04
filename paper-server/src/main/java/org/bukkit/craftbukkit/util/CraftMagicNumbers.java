@@ -173,7 +173,11 @@ public final class CraftMagicNumbers implements UnsafeValues {
         }
 
         for (Item item : BuiltInRegistries.ITEM) {
-            ITEM_MATERIAL.put(item, Material.getMaterial(BuiltInRegistries.ITEM.getKey(item).getPath().toUpperCase(Locale.ROOT)));
+            Material material = Material.getMaterial(BuiltInRegistries.ITEM.getKey(item).getPath().toUpperCase(Locale.ROOT));
+            // MineAzur - les items custom (mineazur:*) n'ont pas de valeur dans l'enum org.bukkit.Material (non extensible).
+            // Sans fallback, la map stocke item->null et CraftItemStack.getType() renvoie null => NPE dès qu'un chemin
+            // Bukkit wrappe l'item (ex : conversion recette->Bukkit pour PrepareItemCraftEvent). AIR = "pas d'équivalent Bukkit".
+            ITEM_MATERIAL.put(item, material != null ? material : Material.AIR);
         }
 
         for (Material material : Material.values()) {
