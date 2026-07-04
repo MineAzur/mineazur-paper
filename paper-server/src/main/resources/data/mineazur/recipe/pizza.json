@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "0#0",
+    "MMM"
+  ],
+  "key": {
+    "M": "mineazur:farine",
+    "0": "minecraft:brown_mushroom",
+    "#": "minecraft:egg"
+  },
+  "result": {
+    "id": "mineazur:pizza",
+    "count": 2
+  }
+}

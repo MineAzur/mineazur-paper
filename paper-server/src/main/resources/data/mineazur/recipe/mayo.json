@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    "&#&",
+    "XXX"
+  ],
+  "key": {
+    "&": "minecraft:egg",
+    "#": "minecraft:milk_bucket",
+    "X": "minecraft:glass"
+  },
+  "result": {
+    "id": "mineazur:mayo",
+    "count": 8
+  }
+}

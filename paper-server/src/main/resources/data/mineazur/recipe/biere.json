@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "minecraft:wheat",
+    "mineazur:chope"
+  ],
+  "result": {
+    "id": "mineazur:biere",
+    "count": 1
+  }
+}

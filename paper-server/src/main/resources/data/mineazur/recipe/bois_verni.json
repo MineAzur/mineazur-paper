@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XXX",
+    "X#X",
+    "XXX"
+  ],
+  "key": {
+    "X": "minecraft:oak_planks",
+    "#": "mineazur:vernis"
+  },
+  "result": {
+    "id": "mineazur:bois_verni",
+    "count": 4
+  }
+}

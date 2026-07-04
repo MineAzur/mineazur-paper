@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "XX",
+    "XX"
+  ],
+  "key": {
+    "X": "minecraft:stone_bricks"
+  },
+  "result": {
+    "id": "mineazur:dalle",
+    "count": 4
+  }
+}

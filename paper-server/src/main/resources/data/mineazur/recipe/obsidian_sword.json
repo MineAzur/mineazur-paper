@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " # ",
+    " # ",
+    " I "
+  ],
+  "key": {
+    "#": "mineazur:obsidian_ingot",
+    "I": "minecraft:stick"
+  },
+  "result": {
+    "id": "mineazur:obsidian_sword",
+    "count": 1
+  }
+}

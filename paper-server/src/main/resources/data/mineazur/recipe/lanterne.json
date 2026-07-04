@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "igi",
+    "gtg",
+    "igi"
+  ],
+  "key": {
+    "i": "minecraft:iron_bars",
+    "g": "minecraft:glass",
+    "t": "minecraft:torch"
+  },
+  "result": {
+    "id": "mineazur:lanterne",
+    "count": 1
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###"
+  ],
+  "key": {
+    "#": "minecraft:oak_slab"
+  },
+  "result": {
+    "id": "mineazur:plafond",
+    "count": 4
+  }
+}

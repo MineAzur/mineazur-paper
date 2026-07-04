@@ -5,7 +5,7 @@
          return new VanillaPackResourcesBuilder()
              .setMetadata(BUILT_IN_METADATA)
 -            .exposeNamespace("minecraft")
-+            .exposeNamespace("minecraft", Identifier.PAPER_NAMESPACE) // Paper
++            .exposeNamespace("minecraft", Identifier.PAPER_NAMESPACE, "mineazur") // Paper // MineAzur - expose le namespace mineazur (recettes/data baked dans le jar serveur)
              .applyDevelopmentConfig()
              .pushJarResources()
              .build(VANILLA_PACK_INFO);

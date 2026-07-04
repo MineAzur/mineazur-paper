@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "   ",
+    " X ",
+    " # "
+  ],
+  "key": {
+    "#": "minecraft:glass_bottle",
+    "X": "minecraft:cactus"
+  },
+  "result": {
+    "id": "mineazur:vernis",
+    "count": 1
+  }
+}

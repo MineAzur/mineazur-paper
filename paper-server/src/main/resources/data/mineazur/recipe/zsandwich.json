@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    " X ",
+    "&#&",
+    " X "
+  ],
+  "key": {
+    "#": "mineazur:mayo",
+    "X": "minecraft:bread",
+    "&": "minecraft:cooked_beef"
+  },
+  "result": {
+    "id": "mineazur:zsandwich",
+    "count": 1
+  }
+}

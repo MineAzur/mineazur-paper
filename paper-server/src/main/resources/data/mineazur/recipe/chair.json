@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "S# ",
+    "#X#",
+    "# #"
+  ],
+  "key": {
+    "#": "minecraft:oak_fence",
+    "X": "mineazur:plafond",
+    "S": "mineazur:vernis"
+  },
+  "result": {
+    "id": "mineazur:chair",
+    "count": 1
+  }
+}

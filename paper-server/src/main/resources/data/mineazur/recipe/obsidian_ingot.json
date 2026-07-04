@@ -1,0 +1,9 @@
+{
+  "type": "minecraft:smelting",
+  "ingredient": "minecraft:obsidian",
+  "result": {
+    "id": "mineazur:obsidian_ingot"
+  },
+  "experience": 1.0,
+  "cookingtime": 200
+}

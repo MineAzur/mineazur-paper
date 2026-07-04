@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#  ",
+    "## ",
+    "###"
+  ],
+  "key": {
+    "#": "minecraft:black_wool"
+  },
+  "result": {
+    "id": "mineazur:stairs_wool_black",
+    "count": 4
+  }
+}

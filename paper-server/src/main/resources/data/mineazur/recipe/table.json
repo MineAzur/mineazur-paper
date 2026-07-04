@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#",
+    "0"
+  ],
+  "key": {
+    "#": "mineazur:plafond",
+    "0": "minecraft:oak_fence"
+  },
+  "result": {
+    "id": "mineazur:table",
+    "count": 1
+  }
+}
