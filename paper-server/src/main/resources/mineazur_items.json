@@ -1,0 +1,14 @@
+{
+  "_comment": "Items custom standalone (hors items-de-bloc). Enregistres APRES les items-de-bloc, MEME ORDRE serveur+client. Lot A = simples + nourriture. Archetypes: plain, food (nutrition/saturation).",
+  "items": [
+    { "name": "obsidian_ingot", "archetype": "plain" },
+    { "name": "farine",         "archetype": "plain" },
+    { "name": "mayo",           "archetype": "plain" },
+    { "name": "vernis",         "archetype": "plain" },
+    { "name": "chope",          "archetype": "plain" },
+    { "name": "assurance",      "archetype": "plain" },
+    { "name": "pizza",     "archetype": "food", "nutrition": 4,  "saturation": 0.6 },
+    { "name": "zsandwich", "archetype": "food", "nutrition": 16, "saturation": 2.0 },
+    { "name": "biere",     "archetype": "food", "nutrition": 4,  "saturation": 0.6 }
+  ]
+}

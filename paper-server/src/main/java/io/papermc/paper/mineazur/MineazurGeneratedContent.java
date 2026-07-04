@@ -21,6 +21,7 @@ import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.MineazurWoolStairsBlock;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
@@ -119,8 +120,32 @@ public final class MineazurGeneratedContent {
         };
     }
 
-    // Hook appelé depuis Items.java (après tous les items vanilla, même ordre que les blocs).
+    private record ItemSpec(String name, String archetype, int nutrition, float saturation) {}
+
+    private static List<ItemSpec> itemSpecs() {
+        final List<ItemSpec> list = new ArrayList<>();
+        try (InputStream in = MineazurGeneratedContent.class.getResourceAsStream("/mineazur_items.json")) {
+            if (in == null) {
+                return list;
+            }
+            final JsonObject root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+            final JsonArray items = root.getAsJsonArray("items");
+            for (int i = 0; i < items.size(); i++) {
+                final JsonObject it = items.get(i).getAsJsonObject();
+                list.add(new ItemSpec(
+                    it.get("name").getAsString(), it.get("archetype").getAsString(),
+                    it.has("nutrition") ? it.get("nutrition").getAsInt() : 0,
+                    it.has("saturation") ? it.get("saturation").getAsFloat() : 0.0F));
+            }
+        } catch (final Exception e) {
+            throw new RuntimeException("MineAzur : lecture de mineazur_items.json échouée", e);
+        }
+        return list;
+    }
+
+    // Hook appelé depuis Items.java (après tous les items vanilla, même ordre que le client).
     public static void registerItems() {
+        // 1) BlockItems des blocs générés (ordre des blocs).
         for (final Spec s : specs()) {
             final Identifier id = Identifier.fromNamespaceAndPath(NS, s.name());
             final ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
@@ -129,6 +154,16 @@ public final class MineazurGeneratedContent {
             final BlockItem item = new BlockItem(block, props);
             item.registerBlocks(Item.BY_BLOCK, item);
             Registry.register(BuiltInRegistries.ITEM, key, item);
+        }
+        // 2) Items standalone (mineazur_items.json), APRÈS les BlockItems, même ordre que le client.
+        for (final ItemSpec s : itemSpecs()) {
+            final ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(NS, s.name()));
+            final Item.Properties props = new Item.Properties();
+            if ("food".equals(s.archetype())) {
+                props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
+            }
+            props.setId(key);
+            Registry.register(BuiltInRegistries.ITEM, key, new Item(props));
         }
     }
 
