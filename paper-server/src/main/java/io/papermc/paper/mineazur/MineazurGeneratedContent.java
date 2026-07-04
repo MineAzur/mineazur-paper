@@ -18,8 +18,12 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.MineazurShurikenEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ShurikenItem;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
@@ -191,11 +195,21 @@ public final class MineazurGeneratedContent {
                 case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
                 case "armor" -> props.humanoidArmor(OBSIDIENNE_ARMOR, armorType(s.slot()));
-                default -> { /* plain */ }
+                default -> { /* plain / thrower */ }
             }
             props.setId(key);
-            Registry.register(BuiltInRegistries.ITEM, key, new Item(props));
+            final Item item = "thrower".equals(s.archetype()) ? new ShurikenItem(props) : new Item(props);
+            Registry.register(BuiltInRegistries.ITEM, key, item);
         }
+    }
+
+    // Hook appelé depuis EntityType.java (après tous les types vanilla). Enregistre l'EntityType du shuriken.
+    public static void registerEntities() {
+        final ResourceKey<EntityType<?>> key = ResourceKey.create(Registries.ENTITY_TYPE, Identifier.fromNamespaceAndPath(NS, "shuriken"));
+        final EntityType<MineazurShurikenEntity> type = Registry.register(BuiltInRegistries.ENTITY_TYPE, key,
+            EntityType.Builder.<MineazurShurikenEntity>of(MineazurShurikenEntity::new, MobCategory.MISC)
+                .noLootTable().sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10).build(key));
+        MineazurShurikenEntity.TYPE = type;
     }
 
     private static ArmorType armorType(final String slot) {

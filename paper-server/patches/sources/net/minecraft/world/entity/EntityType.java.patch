@@ -8,6 +8,19 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
      public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
+@@ -1207,6 +_,12 @@
+             .clientTrackingRange(4)
+             .updateInterval(5)
+     );
++    // MineAzur — enregistre les EntityType custom (shuriken) APRÈS tous les types vanilla (ID réseau déterministe,
++    // à répliquer côté client NeoForge).
++    static {
++        io.papermc.paper.mineazur.MineazurGeneratedContent.registerEntities();
++    }
++
+     private static final Set<EntityType<?>> OP_ONLY_CUSTOM_DATA = Set.of(FALLING_BLOCK, COMMAND_BLOCK_MINECART, SPAWNER_MINECART);
+     private final EntityType.EntityFactory<T> factory;
+     private final MobCategory category;
 @@ -1288,6 +_,22 @@
          final boolean tryMoveDown,
          final boolean movedUp

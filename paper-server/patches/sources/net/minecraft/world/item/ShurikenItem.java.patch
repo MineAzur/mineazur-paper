@@ -1,0 +1,40 @@
+--- /dev/null
++++ b/net/minecraft/world/item/ShurikenItem.java
+@@ -1,0 +_,37 @@
++package net.minecraft.world.item;
++
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.sounds.SoundEvents;
++import net.minecraft.sounds.SoundSource;
++import net.minecraft.world.InteractionHand;
++import net.minecraft.world.InteractionResult;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.entity.projectile.throwableitemprojectile.MineazurShurikenEntity;
++import net.minecraft.world.level.Level;
++
++// MineAzur — item shuriken (portage de tboss.SBTBlocks.ItemShuriken) : lance une MineazurShurikenEntity.
++public class ShurikenItem extends Item {
++    public ShurikenItem(final Item.Properties properties) {
++        super(properties);
++    }
++
++    @Override
++    public InteractionResult use(final Level level, final Player player, final InteractionHand hand) {
++        final ItemStack stack = player.getItemInHand(hand);
++        level.playSound(
++            null, player.getX(), player.getY(), player.getZ(),
++            SoundEvents.SNOWBALL_THROW, SoundSource.NEUTRAL,
++            0.5F, 0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F));
++        // TODO(lot D) : le lancer réel est désactivé tant que la couche Bukkit ne sait pas wrapper une entité
++        // custom (CraftEntity/CraftEntityType). addFreshEntity() crashe sinon (minecraftToBukkit -> null).
++        // L'entité MineazurShurikenEntity + son EntityType + le rendu client sont en place, prêts à être activés
++        // une fois le patch CraftBukkit décidé (voir décision d'archie).
++        if (level instanceof ServerLevel && Boolean.getBoolean("mineazur.enableShurikenThrow")) {
++            final MineazurShurikenEntity shuriken = new MineazurShurikenEntity(level, player, stack);
++            shuriken.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 1.0F);
++            level.addFreshEntity(shuriken);
++            stack.consume(1, player);
++        }
++        return InteractionResult.SUCCESS;
++    }
++}

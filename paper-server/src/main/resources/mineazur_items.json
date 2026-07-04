@@ -82,6 +82,10 @@
       "name": "obsidian_boots",
       "archetype": "armor",
       "slot": "boots"
+    },
+    {
+      "name": "shuriken",
+      "archetype": "thrower"
     }
   ]
 }

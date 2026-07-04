@@ -33,10 +33,10 @@ index 0cfdbdee091f43ca011bc68f7479eb7b84801b09..8d9ce3d301d5f7e4106587ae00adb8dd
                      scopedCollector.forChild(entity.problemPath()), entity.registryAccess()
                  );
 diff --git a/net/minecraft/world/entity/EntityType.java b/net/minecraft/world/entity/EntityType.java
-index a1ee86c18c17e14ebf98f0e72680543addc4c7fa..1ee78f52205cbb0b254a28999f3707ccccbe998e 100644
+index 564f49aa18481a5e87db0e40a769d0b74e7a4b84..f6d2de3ff2a544aba07cf2bb90b2a4f55cd30776 100644
 --- a/net/minecraft/world/entity/EntityType.java
 +++ b/net/minecraft/world/entity/EntityType.java
-@@ -1641,7 +1641,18 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,
+@@ -1647,7 +1647,18 @@ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>,
      }
  
      public static Stream<Entity> loadEntitiesRecursive(final ValueInput.ValueInputList entities, final Level level, final EntitySpawnReason reason) {
