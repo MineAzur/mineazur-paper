@@ -62,6 +62,26 @@
     {
       "name": "obsidian_hoe",
       "archetype": "hoe"
+    },
+    {
+      "name": "obsidian_helmet",
+      "archetype": "armor",
+      "slot": "helmet"
+    },
+    {
+      "name": "obsidian_chestplate",
+      "archetype": "armor",
+      "slot": "chestplate"
+    },
+    {
+      "name": "obsidian_leggings",
+      "archetype": "armor",
+      "slot": "leggings"
+    },
+    {
+      "name": "obsidian_boots",
+      "archetype": "armor",
+      "slot": "boots"
     }
   ]
 }
