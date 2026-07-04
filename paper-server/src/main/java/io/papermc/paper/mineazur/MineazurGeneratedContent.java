@@ -16,6 +16,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.ChairBlock;
+import net.minecraft.world.level.block.MineazurHorizontalBlock;
+import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -24,14 +27,15 @@ import net.minecraft.world.level.material.MapColor;
  * MineAzur — générateur runtime des blocs/items custom, piloté par la source unique
  * {@code /mineazur_blocks.json} (identique côté mod NeoForge). L'ordre du fichier = ordre canonique
  * d'enregistrement (fixe les IDs d'états de palette). Appelé depuis {@code Blocks.java} / {@code Items.java}
- * (hooks 2 lignes) pendant l'init, AVANT que {@code Block.BLOCK_STATE_REGISTRY} soit bâti.
- * Archétype couvert (Lot 1) : {@code simple} non-directionnel (cube plein). Directionnel/shape/stairs = lots suivants.
+ * pendant l'init, AVANT que {@code Block.BLOCK_STATE_REGISTRY} soit bâti.
+ * Archétypes : {@code simple} (dir/non-dir, cube plein), {@code chair} (dir + hitbox 0.15-0.85),
+ * {@code plafond} (hitbox top-slab). ({@code wool_stairs} = lot suivant.)
  */
 public final class MineazurGeneratedContent {
     private static final String NS = "mineazur";
     private static List<Spec> SPECS;
 
-    private record Spec(String name, boolean directional, boolean occlusion, int light,
+    private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
                         float hardness, float resistance, String sound, String mapColor) {}
 
     private MineazurGeneratedContent() {
@@ -49,12 +53,9 @@ public final class MineazurGeneratedContent {
                 for (int i = 0; i < blocks.size(); i++) {
                     final JsonObject b = blocks.get(i).getAsJsonObject();
                     final JsonObject p = b.getAsJsonObject("params");
-                    final String archetype = b.get("archetype").getAsString();
-                    if (!"simple".equals(archetype)) {
-                        throw new IllegalStateException("archétype non supporté (Lot 1 = simple uniquement) : " + archetype);
-                    }
                     list.add(new Spec(
                         b.get("name").getAsString(),
+                        b.get("archetype").getAsString(),
                         p.get("directional").getAsBoolean(),
                         p.get("occlusion").getAsBoolean(),
                         p.get("light").getAsInt(),
@@ -75,9 +76,6 @@ public final class MineazurGeneratedContent {
     // Hook appelé depuis Blocks.java (avant le static{} qui peuple BLOCK_STATE_REGISTRY).
     public static void registerBlocks() {
         for (final Spec s : specs()) {
-            if (s.directional()) {
-                throw new IllegalStateException("bloc directionnel non supporté au Lot 1 : " + s.name());
-            }
             final ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(NS, s.name()));
             final BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
                 .mapColor(mapColor(s.mapColor()))
@@ -91,11 +89,20 @@ public final class MineazurGeneratedContent {
                 props.noOcclusion();
             }
             props.setId(key);
-            Registry.register(BuiltInRegistries.BLOCK, key, new Block(props));
+            Registry.register(BuiltInRegistries.BLOCK, key, create(s, props));
         }
     }
 
-    // Hook appelé depuis Items.java (après tous les items vanilla + chair/testblock, même ordre que les blocs).
+    private static Block create(final Spec s, final BlockBehaviour.Properties props) {
+        return switch (s.archetype()) {
+            case "simple" -> s.directional() ? new MineazurHorizontalBlock(props) : new Block(props);
+            case "chair" -> new ChairBlock(props);
+            case "plafond" -> new PlafondBlock(props);
+            default -> throw new IllegalStateException("archétype non supporté : " + s.archetype());
+        };
+    }
+
+    // Hook appelé depuis Items.java (après tous les items vanilla, même ordre que les blocs).
     public static void registerItems() {
         for (final Spec s : specs()) {
             final Identifier id = Identifier.fromNamespaceAndPath(NS, s.name());

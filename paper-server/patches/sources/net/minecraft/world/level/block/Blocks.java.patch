@@ -1,32 +1,12 @@
 --- a/net/minecraft/world/level/block/Blocks.java
 +++ b/net/minecraft/world/level/block/Blocks.java
-@@ -7044,6 +_,29 @@
+@@ -7044,6 +_,9 @@
              .sound(SoundType.SWEET_BERRY_BUSH)
              .pushReaction(PushReaction.DESTROY)
      );
-+    // MineAzur — bloc custom prototype (Phase 1, portage de tboss.SBTBlocks.BlockChair, ID 1.2.5 = 202).
-+    // Enregistré APRÈS tous les blocs vanilla => ID de palette déterministe, à répliquer à l'identique
-+    // côté client NeoForge (cf. BLOCK_PIPELINE.md, alignement de registre).
-+    public static final Block MINEAZUR_CHAIR = register(
-+        ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("mineazur", "chair")),
-+        ChairBlock::new,
-+        BlockBehaviour.Properties.of()
-+            .mapColor(MapColor.WOOD)
-+            .strength(2.0F, 15.0F)
-+            .sound(SoundType.WOOD)
-+            .noOcclusion()
-+            .pushReaction(PushReaction.DESTROY)
-+    );
-+    // MineAzur — 2e bloc custom du prototype d'alignement (addendum). ORDRE FIGÉ : chair puis testblock,
-+    // à répliquer à l'identique côté client NeoForge (cf. REGISTRY_SYNC.md).
-+    public static final Block MINEAZUR_TESTBLOCK = register(
-+        ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath("mineazur", "testblock")),
-+        MineazurTestBlock::new,
-+        BlockBehaviour.Properties.of()
-+            .mapColor(MapColor.STONE)
-+            .strength(1.0F, 3.0F)
-+            .sound(SoundType.STONE)
-+    );
++    // MineAzur — les blocs custom (chair, table, plafond, dalle, toit, bois_verni…) sont désormais TOUS
++    // enregistrés par le générateur runtime piloté par mineazur_blocks.json (voir le static{} plus bas
++    // appelant MineazurGeneratedContent.registerBlocks(), avant la construction de BLOCK_STATE_REGISTRY).
  
      private static ToIntFunction<BlockState> litBlockEmission(final int lightEmission) {
          return state -> state.getValue(BlockStateProperties.LIT) ? lightEmission : 0;

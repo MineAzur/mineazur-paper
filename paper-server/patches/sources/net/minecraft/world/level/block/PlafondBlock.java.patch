@@ -1,0 +1,34 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/PlafondBlock.java
+@@ -1,0 +_,31 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — archétype "plafond" (201, tboss.SBTBlocks.BlockPlafond) : panneau FIN EN HAUT du bloc,
++// non-directionnel. Portage fidèle de la collision d'origine setBlockBounds(0, 0.88, 0, 1, 1, 1).
++public class PlafondBlock extends Block {
++    public static final MapCodec<PlafondBlock> CODEC = simpleCodec(PlafondBlock::new);
++    private static final VoxelShape SHAPE = Shapes.box(0.0D, 0.88D, 0.0D, 1.0D, 1.0D, 1.0D);
++
++    public PlafondBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++    }
++
++    @Override
++    protected MapCodec<PlafondBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPE;
++    }
++}

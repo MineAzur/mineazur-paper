@@ -1,6 +1,6 @@
 --- /dev/null
-+++ b/net/minecraft/world/level/block/MineazurTestBlock.java
-@@ -1,0 +_,35 @@
++++ b/net/minecraft/world/level/block/MineazurHorizontalBlock.java
+@@ -1,0 +_,34 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -10,19 +10,18 @@
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.StateDefinition;
 +
-+// MineAzur — 2e bloc du prototype d'alignement de registre (addendum Phase 1).
-+// Cube plein directionnel trivial : un seul bloc s'aligne "par chance", deux révèlent si la
-+// discipline d'ordre d'enregistrement tient réellement (cf. REGISTRY_SYNC.md).
-+public class MineazurTestBlock extends HorizontalDirectionalBlock {
-+    public static final MapCodec<MineazurTestBlock> CODEC = simpleCodec(MineazurTestBlock::new);
++// MineAzur — archétype "simple directionnel" (cube plein orienté selon le joueur). Ex : toit (204).
++// Shape par défaut = cube plein (pas d'override getShape). Codec simple (constructeur (Properties) seul).
++public class MineazurHorizontalBlock extends HorizontalDirectionalBlock {
++    public static final MapCodec<MineazurHorizontalBlock> CODEC = simpleCodec(MineazurHorizontalBlock::new);
 +
-+    public MineazurTestBlock(final BlockBehaviour.Properties properties) {
++    public MineazurHorizontalBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
 +        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
 +    }
 +
 +    @Override
-+    protected MapCodec<MineazurTestBlock> codec() {
++    protected MapCodec<MineazurHorizontalBlock> codec() {
 +        return CODEC;
 +    }
 +
