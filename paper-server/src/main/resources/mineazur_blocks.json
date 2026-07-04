@@ -1,0 +1,15 @@
+{
+  "_comment": "Source de vérité UNIQUE de l'ordre + archétype des blocs custom MineAzur (lecture runtime serveur+client). L'ordre du tableau = ordre canonique d'enregistrement (par legacyId). Copié aux 2 builds. Lot 1 = dalle + boisV (archétype simple, non-directionnel). chair(202) reste hardcodé (migre en Lot 2 avec l'archétype directionnel).",
+  "blocks": [
+    {
+      "legacyId": 203, "name": "dalle", "archetype": "simple",
+      "params": { "directional": false, "occlusion": true, "light": 0,
+                  "hardness": 2.0, "resistance": 15.0, "sound": "STONE", "mapColor": "STONE" }
+    },
+    {
+      "legacyId": 205, "name": "bois_verni", "archetype": "simple",
+      "params": { "directional": false, "occlusion": true, "light": 15,
+                  "hardness": 2.0, "resistance": 5.0, "sound": "WOOD", "mapColor": "WOOD" }
+    }
+  ]
+}

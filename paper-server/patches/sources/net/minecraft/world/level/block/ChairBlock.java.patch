@@ -1,0 +1,51 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/ChairBlock.java
+@@ -1,0 +_,48 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — prototype Phase 1 : portage du bloc custom 1.2.5 "chair" (ID 202, tboss.SBTBlocks.BlockChair).
++// Comportements d'origine préservés : hitbox réduite 0.15-0.85 (xz), pleine hauteur ; directionnel yaw->facing.
++public class ChairBlock extends HorizontalDirectionalBlock {
++    public static final MapCodec<ChairBlock> CODEC = simpleCodec(ChairBlock::new);
++
++    // 1.2.5 BlockChair.a(...) : setBlockBounds(0.15F, 0.0F, 0.15F, 0.85F, 1.0F, 0.85F)
++    private static final VoxelShape SHAPE = Shapes.box(0.15D, 0.0D, 0.15D, 0.85D, 1.0D, 0.85D);
++
++    public ChairBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
++    }
++
++    @Override
++    protected MapCodec<ChairBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPE;
++    }
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        // 1.2.5 BlockChair.postPlace : orientation dérivée du yaw du joueur -> la chaise fait face au joueur.
++        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(FACING);
++    }
++}

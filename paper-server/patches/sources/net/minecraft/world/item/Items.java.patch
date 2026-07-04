@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/item/Items.java
++++ b/net/minecraft/world/item/Items.java
+@@ -2326,6 +_,15 @@
+             .component(DataComponents.CONSUMABLE, Consumables.OMINOUS_BOTTLE)
+             .component(DataComponents.OMINOUS_BOTTLE_AMPLIFIER, new OminousBottleAmplifier(0))
+     );
++    // MineAzur — BlockItem des blocs custom (addendum Phase 1). Enregistrés APRÈS tous les items vanilla,
++    // MÊME ORDRE que les blocs (chair puis testblock) => IDs d'item déterministes, à répliquer côté client.
++    // Clé d'item = clé du bloc (namespace mineazur préservé) : mineazur:chair, mineazur:testblock.
++    public static final Item MINEAZUR_CHAIR = registerBlock(Blocks.MINEAZUR_CHAIR);
++    public static final Item MINEAZUR_TESTBLOCK = registerBlock(Blocks.MINEAZUR_TESTBLOCK);
++    // MineAzur — items des blocs générés (mineazur_blocks.json), MÊME ORDRE que les blocs (après chair/testblock).
++    static {
++        io.papermc.paper.mineazur.MineazurGeneratedContent.registerItems();
++    }
+ 
+     private static Function<Item.Properties, Item> createBlockItemWithCustomItemName(final Block block) {
+         return p -> new BlockItem(block, p.useItemDescriptionPrefix());
