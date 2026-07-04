@@ -437,7 +437,7 @@
              this.connection
                  .send(
                      new ClientboundPlayerCombatKillPacket(this.getId(), deathMessage),
-@@ -889,6 +_,64 @@
+@@ -889,6 +_,81 @@
                          }
                      )
                  );
@@ -456,6 +456,15 @@
 +        }
 +        List<DefaultDrop> loot = new java.util.ArrayList<>(this.getInventory().getContainerSize()); // Paper - Restore vanilla drops behavior
 +        boolean keepInventory = this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || this.isSpectator();
++        // MineAzur - assurance : si le joueur possède une assurance, il garde inventaire+niveau+xp (aucun drop).
++        // On force keepInventory ici (avant la boucle de loot) ; la consommation + le blocage d'XP se font après
++        // la confirmation de la mort (cf. plus bas), pour ne pas consommer sur une mort annulée par un plugin.
++        boolean mineazurAssurance = false;
++        if (!keepInventory && io.papermc.paper.mineazur.MineazurBehaviors.hasAssurance(this)) {
++            keepInventory = true;
++            mineazurAssurance = true;
++        }
++        // MineAzur end
 +        if (!keepInventory) {
 +            for (ItemStack item : this.getInventory().getContents()) {
 +                if (!item.isEmpty() && !EnchantmentHelper.has(item, net.minecraft.world.item.enchantment.EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
@@ -485,6 +494,14 @@
 +        }
 +        this.gameEvent(GameEvent.ENTITY_DIE); // moved from the top of this method
 +        // Paper end
++
++        // MineAzur - assurance : mort confirmée -> consomme 1 assurance + supprime le drop d'XP (l'inventaire et le
++        // niveau sont déjà conservés via keepInventory/keepLevel forcés plus haut). L'XP tombe plus bas (shouldDropExperience).
++        if (mineazurAssurance) {
++            io.papermc.paper.mineazur.MineazurBehaviors.consumeAssurance(this);
++            event.setShouldDropExperience(false);
++        }
++        // MineAzur end
 +
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {

@@ -23,6 +23,7 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.projectile.throwableitemprojectile.MineazurShurikenEntity;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ShurikenItem;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterial;
@@ -34,7 +35,12 @@ import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.MineazurWoolStairsBlock;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.food.FoodProperties;
+import net.minecraft.world.item.component.Consumable;
+import net.minecraft.world.item.component.Consumables;
+import net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
@@ -188,7 +194,13 @@ public final class MineazurGeneratedContent {
             final ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(NS, s.name()));
             final Item.Properties props = new Item.Properties();
             switch (s.archetype()) {
-                case "food" -> props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
+                case "food" -> {
+                    if ("biere".equals(s.name())) {
+                        configureBiere(props, s);
+                    } else {
+                        props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
+                    }
+                }
                 case "sword" -> props.sword(OBSIDIAN, 3.0F, -2.4F);
                 case "pickaxe" -> props.pickaxe(OBSIDIAN, 1.0F, -2.8F);
                 case "axe" -> props.axe(OBSIDIAN, 5.0F, -3.0F);
@@ -210,6 +222,24 @@ public final class MineazurGeneratedContent {
             EntityType.Builder.<MineazurShurikenEntity>of(MineazurShurikenEntity::new, MobCategory.MISC)
                 .noLootTable().sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10).build(key));
         MineazurShurikenEntity.TYPE = type;
+    }
+
+    // Bière (portage de tboss.SBTBlocks.ItemBiere, 2011) : à la consommation, applique Nausée (60 s, ampli 10)
+    // + Wither (60 s, ampli 25) et se transforme en chope vide. Effets = composant Consumable (26.x) ; animation
+    // « boire ». NB : ampli Wither 25 = quasi-mortel (fidèle au gag d'origine ; ajustable ici).
+    private static void configureBiere(final Item.Properties props, final ItemSpec s) {
+        final FoodProperties food = new FoodProperties.Builder()
+            .nutrition(s.nutrition()).saturationModifier(s.saturation()).alwaysEdible().build();
+        final Consumable consumable = Consumables.defaultDrink()
+            .onConsume(new ApplyStatusEffectsConsumeEffect(List.of(
+                new MobEffectInstance(MobEffects.NAUSEA, 1200, 10),
+                new MobEffectInstance(MobEffects.WITHER, 1200, 25))))
+            .build();
+        props.food(food, consumable).stacksTo(1);
+        final Item chope = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(NS, "chope"));
+        if (chope != null && chope != Items.AIR) {
+            props.usingConvertsTo(chope);
+        }
     }
 
     private static ArmorType armorType(final String slot) {
