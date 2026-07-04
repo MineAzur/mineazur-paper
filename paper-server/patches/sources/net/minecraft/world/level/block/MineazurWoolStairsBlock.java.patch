@@ -1,0 +1,17 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/MineazurWoolStairsBlock.java
+@@ -1,0 +_,14 @@
++package net.minecraft.world.level.block;
++
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++
++// MineAzur — archétype "wool_stairs" (151-166) : escalier vanilla sur une laine de base.
++// Sous-classe de StairBlock uniquement pour exposer un constructeur PUBLIC (celui de StairBlock est protected)
++// appelable depuis le générateur (io.papermc.paper.mineazur). Même définition d'états + codec hérités de
++// StairBlock => alignement de registre identique au client.
++public class MineazurWoolStairsBlock extends StairBlock {
++    public MineazurWoolStairsBlock(final BlockState baseState, final BlockBehaviour.Properties properties) {
++        super(baseState, properties);
++    }
++}

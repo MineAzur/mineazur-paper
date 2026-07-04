@@ -1,17 +1,247 @@
 {
-  "_comment": "Source de vérité UNIQUE ordre+archétype des blocs custom MineAzur (lecture runtime serveur+client). Ordre du tableau = ordre canonique d'enregistrement (par legacyId). Copié aux 2 builds. Archétypes: simple (directional/light/occlusion), chair (dir+hitbox 0.15-0.85), plafond (hitbox top-slab). lanterne(150)+stairs(151-166) = lots suivants.",
+  "_comment": "Source de verite UNIQUE ordre+archetype des blocs custom MineAzur. Ordre = legacyId. Copie aux 2 builds.",
   "blocks": [
-    { "legacyId": 200, "name": "table",      "archetype": "simple",
-      "params": { "directional": false, "occlusion": false, "light": 0, "hardness": 2.0, "resistance": 5.0,  "sound": "WOOD",  "mapColor": "WOOD" } },
-    { "legacyId": 201, "name": "plafond",    "archetype": "plafond",
-      "params": { "directional": false, "occlusion": false, "light": 0, "hardness": 2.0, "resistance": 5.0,  "sound": "WOOD",  "mapColor": "WOOD" } },
-    { "legacyId": 202, "name": "chair",      "archetype": "chair",
-      "params": { "directional": true,  "occlusion": false, "light": 0, "hardness": 2.0, "resistance": 15.0, "sound": "WOOD",  "mapColor": "WOOD" } },
-    { "legacyId": 203, "name": "dalle",      "archetype": "simple",
-      "params": { "directional": false, "occlusion": true,  "light": 0, "hardness": 2.0, "resistance": 15.0, "sound": "STONE", "mapColor": "STONE" } },
-    { "legacyId": 204, "name": "toit",       "archetype": "simple",
-      "params": { "directional": true,  "occlusion": true,  "light": 1, "hardness": 2.0, "resistance": 15.0, "sound": "WOOD",  "mapColor": "WOOD" } },
-    { "legacyId": 205, "name": "bois_verni", "archetype": "simple",
-      "params": { "directional": false, "occlusion": true,  "light": 15,"hardness": 2.0, "resistance": 5.0,  "sound": "WOOD",  "mapColor": "WOOD" } }
+    {
+      "legacyId": 150,
+      "name": "lanterne",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 151,
+      "name": "stairs_wool_white",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:white_wool"
+      }
+    },
+    {
+      "legacyId": 152,
+      "name": "stairs_wool_orange",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:orange_wool"
+      }
+    },
+    {
+      "legacyId": 153,
+      "name": "stairs_wool_magenta",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:magenta_wool"
+      }
+    },
+    {
+      "legacyId": 154,
+      "name": "stairs_wool_light_blue",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:light_blue_wool"
+      }
+    },
+    {
+      "legacyId": 155,
+      "name": "stairs_wool_yellow",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:yellow_wool"
+      }
+    },
+    {
+      "legacyId": 156,
+      "name": "stairs_wool_lime",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:lime_wool"
+      }
+    },
+    {
+      "legacyId": 157,
+      "name": "stairs_wool_pink",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:pink_wool"
+      }
+    },
+    {
+      "legacyId": 158,
+      "name": "stairs_wool_gray",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:gray_wool"
+      }
+    },
+    {
+      "legacyId": 159,
+      "name": "stairs_wool_light_gray",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:light_gray_wool"
+      }
+    },
+    {
+      "legacyId": 160,
+      "name": "stairs_wool_cyan",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:cyan_wool"
+      }
+    },
+    {
+      "legacyId": 161,
+      "name": "stairs_wool_purple",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:purple_wool"
+      }
+    },
+    {
+      "legacyId": 162,
+      "name": "stairs_wool_blue",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:blue_wool"
+      }
+    },
+    {
+      "legacyId": 163,
+      "name": "stairs_wool_brown",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:brown_wool"
+      }
+    },
+    {
+      "legacyId": 164,
+      "name": "stairs_wool_green",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:green_wool"
+      }
+    },
+    {
+      "legacyId": 165,
+      "name": "stairs_wool_red",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:red_wool"
+      }
+    },
+    {
+      "legacyId": 166,
+      "name": "stairs_wool_black",
+      "archetype": "wool_stairs",
+      "params": {
+        "directional": false,
+        "base": "minecraft:black_wool"
+      }
+    },
+    {
+      "legacyId": 200,
+      "name": "table",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 5.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    },
+    {
+      "legacyId": 201,
+      "name": "plafond",
+      "archetype": "plafond",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 5.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    },
+    {
+      "legacyId": 202,
+      "name": "chair",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 15.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    },
+    {
+      "legacyId": 203,
+      "name": "dalle",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 15.0,
+        "sound": "STONE",
+        "mapColor": "STONE"
+      }
+    },
+    {
+      "legacyId": 204,
+      "name": "toit",
+      "archetype": "simple",
+      "params": {
+        "directional": true,
+        "occlusion": true,
+        "light": 1,
+        "hardness": 2.0,
+        "resistance": 15.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    },
+    {
+      "legacyId": 205,
+      "name": "bois_verni",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 2.0,
+        "resistance": 5.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    }
   ]
 }

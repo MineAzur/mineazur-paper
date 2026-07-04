@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChairBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
+import net.minecraft.world.level.block.MineazurWoolStairsBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
@@ -26,19 +27,26 @@ import net.minecraft.world.level.material.MapColor;
 /**
  * MineAzur — générateur runtime des blocs/items custom, piloté par la source unique
  * {@code /mineazur_blocks.json} (identique côté mod NeoForge). L'ordre du fichier = ordre canonique
- * d'enregistrement (fixe les IDs d'états de palette). Appelé depuis {@code Blocks.java} / {@code Items.java}
- * pendant l'init, AVANT que {@code Block.BLOCK_STATE_REGISTRY} soit bâti.
- * Archétypes : {@code simple} (dir/non-dir, cube plein), {@code chair} (dir + hitbox 0.15-0.85),
- * {@code plafond} (hitbox top-slab). ({@code wool_stairs} = lot suivant.)
+ * d'enregistrement (fixe les IDs d'états de palette). Appelé depuis {@code Blocks.java}/{@code Items.java}.
+ * Archétypes : {@code simple} (dir/non-dir, cube plein), {@code chair} (hitbox 0.15-0.85),
+ * {@code plafond} (top-slab), {@code wool_stairs} (StairBlock vanilla sur une laine de base).
  */
 public final class MineazurGeneratedContent {
     private static final String NS = "mineazur";
     private static List<Spec> SPECS;
 
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
-                        float hardness, float resistance, String sound, String mapColor) {}
+                        float hardness, float resistance, String sound, String mapColor, String base) {}
 
     private MineazurGeneratedContent() {
+    }
+
+    private static float asFloat(final JsonObject p, final String k, final float def) {
+        return p.has(k) ? p.get(k).getAsFloat() : def;
+    }
+
+    private static String asString(final JsonObject p, final String k, final String def) {
+        return p.has(k) ? p.get(k).getAsString() : def;
     }
 
     private static List<Spec> specs() {
@@ -56,13 +64,14 @@ public final class MineazurGeneratedContent {
                     list.add(new Spec(
                         b.get("name").getAsString(),
                         b.get("archetype").getAsString(),
-                        p.get("directional").getAsBoolean(),
-                        p.get("occlusion").getAsBoolean(),
-                        p.get("light").getAsInt(),
-                        p.get("hardness").getAsFloat(),
-                        p.get("resistance").getAsFloat(),
-                        p.get("sound").getAsString(),
-                        p.get("mapColor").getAsString()
+                        p.has("directional") && p.get("directional").getAsBoolean(),
+                        !p.has("occlusion") || p.get("occlusion").getAsBoolean(),
+                        p.has("light") ? p.get("light").getAsInt() : 0,
+                        asFloat(p, "hardness", 1.0F),
+                        asFloat(p, "resistance", 1.0F),
+                        asString(p, "sound", "STONE"),
+                        asString(p, "mapColor", "STONE"),
+                        asString(p, "base", null)
                     ));
                 }
             } catch (final Exception e) {
@@ -77,19 +86,27 @@ public final class MineazurGeneratedContent {
     public static void registerBlocks() {
         for (final Spec s : specs()) {
             final ResourceKey<Block> key = ResourceKey.create(Registries.BLOCK, Identifier.fromNamespaceAndPath(NS, s.name()));
-            final BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
-                .mapColor(mapColor(s.mapColor()))
-                .strength(s.hardness(), s.resistance())
-                .sound(soundType(s.sound()));
-            if (s.light() > 0) {
-                final int light = s.light();
-                props.lightLevel(state -> light);
+            final Block block;
+            if ("wool_stairs".equals(s.archetype())) {
+                final Block base = BuiltInRegistries.BLOCK.getValue(Identifier.parse(s.base()));
+                final BlockBehaviour.Properties props = BlockBehaviour.Properties.ofFullCopy(base).setId(key);
+                block = new MineazurWoolStairsBlock(base.defaultBlockState(), props);
+            } else {
+                final BlockBehaviour.Properties props = BlockBehaviour.Properties.of()
+                    .mapColor(mapColor(s.mapColor()))
+                    .strength(s.hardness(), s.resistance())
+                    .sound(soundType(s.sound()));
+                if (s.light() > 0) {
+                    final int light = s.light();
+                    props.lightLevel(state -> light);
+                }
+                if (!s.occlusion()) {
+                    props.noOcclusion();
+                }
+                props.setId(key);
+                block = create(s, props);
             }
-            if (!s.occlusion()) {
-                props.noOcclusion();
-            }
-            props.setId(key);
-            Registry.register(BuiltInRegistries.BLOCK, key, create(s, props));
+            Registry.register(BuiltInRegistries.BLOCK, key, block);
         }
     }
 
@@ -119,6 +136,7 @@ public final class MineazurGeneratedContent {
         return switch (name) {
             case "WOOD" -> MapColor.WOOD;
             case "STONE" -> MapColor.STONE;
+            case "SAND" -> MapColor.SAND;
             default -> throw new IllegalStateException("mapColor non mappé : " + name);
         };
     }
@@ -127,6 +145,7 @@ public final class MineazurGeneratedContent {
         return switch (name) {
             case "WOOD" -> SoundType.WOOD;
             case "STONE" -> SoundType.STONE;
+            case "GLASS" -> SoundType.GLASS;
             default -> throw new IllegalStateException("sound non mappé : " + name);
         };
     }
