@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/item/ShurikenItem.java
-@@ -1,0 +_,37 @@
+@@ -1,0 +_,38 @@
 +package net.minecraft.world.item;
 +
 +import net.minecraft.server.level.ServerLevel;
@@ -25,16 +25,17 @@
 +            null, player.getX(), player.getY(), player.getZ(),
 +            SoundEvents.SNOWBALL_THROW, SoundSource.NEUTRAL,
 +            0.5F, 0.4F / (level.getRandom().nextFloat() * 0.4F + 0.8F));
-+        // TODO(lot D) : le lancer réel est désactivé tant que la couche Bukkit ne sait pas wrapper une entité
-+        // custom (CraftEntity/CraftEntityType). addFreshEntity() crashe sinon (minecraftToBukkit -> null).
-+        // L'entité MineazurShurikenEntity + son EntityType + le rendu client sont en place, prêts à être activés
-+        // une fois le patch CraftBukkit décidé (voir décision d'archie).
-+        if (level instanceof ServerLevel && Boolean.getBoolean("mineazur.enableShurikenThrow")) {
-+            final MineazurShurikenEntity shuriken = new MineazurShurikenEntity(level, player, stack);
++        if (level instanceof ServerLevel) {
++            // Entité créée avec NOTRE EntityType (mineazur:shuriken) ; wrappée en CraftSnowball côté Bukkit
++            // (MineazurShurikenEntity extends Snowball + patch CraftEntityType).
++            final MineazurShurikenEntity shuriken = new MineazurShurikenEntity(MineazurShurikenEntity.TYPE, level);
++            shuriken.setOwner(player);
++            shuriken.setPos(player.getX(), player.getEyeY() - 0.1, player.getZ());
++            shuriken.setItem(stack);
 +            shuriken.shootFromRotation(player, player.getXRot(), player.getYRot(), 0.0F, 1.5F, 1.0F);
 +            level.addFreshEntity(shuriken);
-+            stack.consume(1, player);
 +        }
++        stack.consume(1, player);
 +        return InteractionResult.SUCCESS;
 +    }
 +}

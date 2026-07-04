@@ -19,7 +19,13 @@ public class CraftEntityType {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<net.minecraft.world.entity.EntityType<?>> registry = CraftRegistry.getMinecraftRegistry(Registries.ENTITY_TYPE);
-        EntityType bukkit = Registry.ENTITY_TYPE.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().identifier()));
+        net.minecraft.resources.Identifier id = registry.getResourceKey(minecraft).orElseThrow().identifier();
+        // MineAzur - les entités NMS custom (namespace mineazur) n'ont pas de valeur dans l'enum Bukkit EntityType :
+        // on les mappe vers leur type Bukkit vanilla le plus proche (le shuriken EST-UN Snowball côté héritage).
+        if ("mineazur".equals(id.getNamespace())) {
+            return EntityType.SNOWBALL;
+        }
+        EntityType bukkit = Registry.ENTITY_TYPE.get(CraftNamespacedKey.fromMinecraft(id));
 
         Preconditions.checkArgument(bukkit != null);
 
