@@ -13,8 +13,11 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChairBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
@@ -35,6 +38,11 @@ import net.minecraft.world.level.material.MapColor;
 public final class MineazurGeneratedContent {
     private static final String NS = "mineazur";
     private static List<Spec> SPECS;
+
+    // Matériau d'outil obsidienne (stats d'origine 2011 : durée 900, efficacité 7.0, ench 12 ; niveau diamant).
+    private static final ToolMaterial OBSIDIAN = new ToolMaterial(
+        BlockTags.INCORRECT_FOR_DIAMOND_TOOL, 900, 7.0F, 3.0F, 12,
+        TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("mineazur", "obsidian_ingots")));
 
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
                         float hardness, float resistance, String sound, String mapColor, String base) {}
@@ -159,8 +167,14 @@ public final class MineazurGeneratedContent {
         for (final ItemSpec s : itemSpecs()) {
             final ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath(NS, s.name()));
             final Item.Properties props = new Item.Properties();
-            if ("food".equals(s.archetype())) {
-                props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
+            switch (s.archetype()) {
+                case "food" -> props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
+                case "sword" -> props.sword(OBSIDIAN, 3.0F, -2.4F);
+                case "pickaxe" -> props.pickaxe(OBSIDIAN, 1.0F, -2.8F);
+                case "axe" -> props.axe(OBSIDIAN, 5.0F, -3.0F);
+                case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
+                case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
+                default -> { /* plain */ }
             }
             props.setId(key);
             Registry.register(BuiltInRegistries.ITEM, key, new Item(props));
