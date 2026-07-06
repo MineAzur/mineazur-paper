@@ -224,16 +224,16 @@ public final class MineazurGeneratedContent {
         MineazurShurikenEntity.TYPE = type;
     }
 
-    // Bière (portage de tboss.SBTBlocks.ItemBiere, 2011) : à la consommation, applique Nausée (60 s, ampli 10)
-    // + Wither (60 s, ampli 25) et se transforme en chope vide. Effets = composant Consumable (26.x) ; animation
-    // « boire ». NB : ampli Wither 25 = quasi-mortel (fidèle au gag d'origine ; ajustable ici).
+    // Bière (portage de tboss.SBTBlocks.ItemBiere, 2011) : à la consommation « soûle » le joueur (60 s) puis
+    // se transforme en chope vide. L'original appliquait l'effet 9 (Nausée) + l'effet CUSTOM 20 « potion.drunk »
+    // (cosmétique, SANS dégâts) — et NON le Wither vanilla. Le port traduisait id 20 → MobEffects.WITHER (ampli 25),
+    // ce qui tuait le joueur : bug. On restitue le gag « bourré » par la seule Nausée (le wobble d'écran).
     private static void configureBiere(final Item.Properties props, final ItemSpec s) {
         final FoodProperties food = new FoodProperties.Builder()
             .nutrition(s.nutrition()).saturationModifier(s.saturation()).alwaysEdible().build();
         final Consumable consumable = Consumables.defaultDrink()
             .onConsume(new ApplyStatusEffectsConsumeEffect(List.of(
-                new MobEffectInstance(MobEffects.NAUSEA, 1200, 10),
-                new MobEffectInstance(MobEffects.WITHER, 1200, 25))))
+                new MobEffectInstance(MobEffects.NAUSEA, 1200, 10))))
             .build();
         props.food(food, consumable).stacksTo(1);
         final Item chope = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(NS, "chope"));
