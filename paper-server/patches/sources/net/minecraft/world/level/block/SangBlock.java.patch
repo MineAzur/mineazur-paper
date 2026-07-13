@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,179 @@
+@@ -1,0 +_,216 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -43,7 +43,18 @@
 +        FLAQUE_NW("flaque_nw"),
 +        FLAQUE_NE("flaque_ne"),
 +        FLAQUE_SW("flaque_sw"),
-+        FLAQUE_SE("flaque_se");
++        FLAQUE_SE("flaque_se"),
++        // Phase 3 — coudes (traînée qui tourne), bouts/repli (extrémités), mare pleine (grandes flaques).
++        // Ajoutés EN FIN → alignement des états P1/P2 inchangé (I1/I3).
++        COUDE_NE("coude_ne"),
++        COUDE_NW("coude_nw"),
++        COUDE_SE("coude_se"),
++        COUDE_SW("coude_sw"),
++        BOUT_N("bout_n"),
++        BOUT_S("bout_s"),
++        BOUT_E("bout_e"),
++        BOUT_W("bout_w"),
++        FLAQUE_FULL("flaque_full");
 +
 +        private final String name;
 +
@@ -97,6 +108,9 @@
 +        final boolean nw = level.getBlockState(pos.north().west()).is(self);
 +        final boolean se = level.getBlockState(pos.south().east()).is(self);
 +        final boolean sw = level.getBlockState(pos.south().west()).is(self);
++        if (n && s && e && w) {
++            return Forme.FLAQUE_FULL; // Phase 3 : entouré des 4 orthogonaux -> fond plein (intérieur des grandes mares)
++        }
 +        if (e && s && se) {
 +            return Forme.FLAQUE_NW;
 +        }
@@ -110,17 +124,40 @@
 +            return Forme.FLAQUE_SE;
 +        }
 +
++        // TEST 2 — paire opposée -> traînée droite.
 +        if (n && s) {
 +            return Forme.TRAINEE_V; // paire opposée Nord-Sud -> traînée axe Z
 +        }
 +        if (e && w) {
 +            return Forme.TRAINEE_H; // paire opposée Est-Ouest -> traînée axe X
 +        }
-+        final int count = (n ? 1 : 0) + (s ? 1 : 0) + (e ? 1 : 0) + (w ? 1 : 0);
-+        if (count == 1) {
-+            return (n || s) ? Forme.TRAINEE_V : Forme.TRAINEE_H; // un seul voisin -> traînée sur son axe
++        // TEST 4 (Phase 3) — coude : 2 voisins ADJACENTS (L), sans leur diagonale (sinon c'eût été une flaque).
++        if (n && e) {
++            return Forme.COUDE_NE;
 +        }
-+        return Forme.GOUTTE; // 0 voisin (test 6) ; coude (2 adjacents non-flaque) -> goutte en P1/P2 (test 4 = P3)
++        if (n && w) {
++            return Forme.COUDE_NW;
++        }
++        if (s && e) {
++            return Forme.COUDE_SE;
++        }
++        if (s && w) {
++            return Forme.COUDE_SW;
++        }
++        // TEST 5 (Phase 3) — repli : ici il reste au plus 1 voisin -> extrémité (cap) orientée vers lui.
++        if (n) {
++            return Forme.BOUT_N;
++        }
++        if (s) {
++            return Forme.BOUT_S;
++        }
++        if (e) {
++            return Forme.BOUT_E;
++        }
++        if (w) {
++            return Forme.BOUT_W;
++        }
++        return Forme.GOUTTE; // TEST 6 — aucun voisin.
 +    }
 +
 +    // Phase 2 — propage la re-résolution aux 4 voisins DIAGONAUX. updateShape ne se déclenche que pour les 6

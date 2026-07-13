@@ -64,7 +64,7 @@ public final class MineazurConfig {
         require-mod: true
 
         # Version du mod attendue (le mod envoie sa version dans 'hello').
-        required-mod-version: "0.6.1"
+        required-mod-version: "0.6.2"
 
         # Vérifier la version exacte. false = mod requis mais n'importe quelle version acceptée.
         enforce-version: true
@@ -90,7 +90,7 @@ public final class MineazurConfig {
         return new MineazurConfig(
                 c.getBoolean("require-mod", true),
                 c.getBoolean("enforce-version", true),
-                c.getString("required-mod-version", "0.6.1"),
+                c.getString("required-mod-version", "0.6.2"),
                 Math.max(20, c.getInt("handshake-timeout-seconds", 10) * 20),
                 c.getString("kick-no-mod",
                         "Ce serveur nécessite le mod MineAzur. Utilise le launcher MineAzur pour rejoindre."),
