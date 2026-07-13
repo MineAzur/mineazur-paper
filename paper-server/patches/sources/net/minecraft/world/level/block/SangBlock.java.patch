@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,216 @@
+@@ -1,0 +_,147 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -10,7 +10,6 @@
 +import net.minecraft.util.StringRepresentable;
 +import net.minecraft.world.item.context.BlockPlaceContext;
 +import net.minecraft.world.level.BlockGetter;
-+import net.minecraft.world.level.LevelAccessor;
 +import net.minecraft.world.level.LevelReader;
 +import net.minecraft.world.level.ScheduledTickAccess;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -20,46 +19,46 @@
 +import net.minecraft.world.phys.shapes.CollisionContext;
 +import net.minecraft.world.phys.shapes.VoxelShape;
 +
-+// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Premier bloc NOUVEAU (pas une résurrection) et premier bloc
-+// CONNECTÉ/dynamique : sa forme émerge du voisinage (comme la redstone). PHASE 1 : mécanisme de base seulement
-+// (goutte + traînée droite), preuve de la résolution dynamique + de l'alignement garde AVANT flaque/coudes (P2/P3).
++// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Décal de sang au sol, CONNECTÉ : sa forme émerge du voisinage.
 +//
-+// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock (mod NeoForge). L'ordre des valeurs de l'enum Forme + le
-+// builder.add(FORME) DOIVENT être identiques des deux côtés, sinon les stateIds de palette divergent (I3).
++// Modèle par MASQUE des 4 voisins ORTHOGONAUX (16 états). Chaque état = une combinaison de voisins N/S/E/O ;
++// sa texture est opaque jusqu'au bord côté voisin (raccord net) et organique côté ouvert -> une mare continue
++// de taille quelconque, sans couture. Le masque ne dépendant QUE des 4 faces, updateShape (qui se déclenche
++// sur ces faces) suffit à la re-résolution — pas besoin de propagation diagonale.
 +//
-+// Plat, non-solide, traversable (noCollision côté propriétés) : on marche dessus comme sur une peinture au sol.
++// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock. L'ORDRE de déclaration de l'enum Forme (= ordre du masque
++// 0..15) DOIT être identique des deux côtés, sinon les stateIds de palette divergent (I3).
++//
++// Plat, non-solide, traversable (noCollision) : on marche dessus comme sur une peinture au sol.
 +public class SangBlock extends Block {
 +    public static final MapCodec<SangBlock> CODEC = simpleCodec(SangBlock::new);
 +
-+    // Forme résolue par le voisinage. ORDRE CANONIQUE P1 (invariant I3, identique client) : les états P2/P3
-+    // (flaque, coudes…) s'ajouteront EN FIN pour préserver l'alignement des états P1 déjà validés.
-+    // Convention d'axe (vue de dessus) : H = axe Est-Ouest (X) ; V = axe Nord-Sud (Z).
++    // Forme = masque des voisins. ORDRE = valeur du masque 0..15 (N=1, S=2, E=4, W=8). Le nom sérialisé liste
++    // les côtés CONNECTÉS dans l'ordre NSEW (ou "none"), et sert de clé texture/modèle côté client.
 +    public enum Forme implements StringRepresentable {
-+        GOUTTE("goutte"),
-+        TRAINEE_H("trainee_h"),
-+        TRAINEE_V("trainee_v"),
-+        // Phase 2 — flaque 2×2 : chaque bloc = un COIN du carré. Ajoutés EN FIN → préserve l'alignement des
-+        // 3 états P1 (indices 0/1/2 inchangés, invariant I1/I3).
-+        FLAQUE_NW("flaque_nw"),
-+        FLAQUE_NE("flaque_ne"),
-+        FLAQUE_SW("flaque_sw"),
-+        FLAQUE_SE("flaque_se"),
-+        // Phase 3 — coudes (traînée qui tourne), bouts/repli (extrémités), mare pleine (grandes flaques).
-+        // Ajoutés EN FIN → alignement des états P1/P2 inchangé (I1/I3).
-+        COUDE_NE("coude_ne"),
-+        COUDE_NW("coude_nw"),
-+        COUDE_SE("coude_se"),
-+        COUDE_SW("coude_sw"),
-+        BOUT_N("bout_n"),
-+        BOUT_S("bout_s"),
-+        BOUT_E("bout_e"),
-+        BOUT_W("bout_w"),
-+        FLAQUE_FULL("flaque_full");
++        NONE("none", 0),
++        N("n", 1),
++        S("s", 2),
++        NS("ns", 3),
++        E("e", 4),
++        NE("ne", 5),
++        SE("se", 6),
++        NSE("nse", 7),
++        W("w", 8),
++        NW("nw", 9),
++        SW("sw", 10),
++        NSW("nsw", 11),
++        EW("ew", 12),
++        NEW("new", 13),
++        SEW("sew", 14),
++        NSEW("nsew", 15);
 +
 +        private final String name;
++        private final int mask;
 +
-+        Forme(final String name) {
++        Forme(final String name, final int mask) {
 +            this.name = name;
++            this.mask = mask;
 +        }
 +
 +        @Override
@@ -68,14 +67,22 @@
 +        }
 +    }
 +
++    private static final Forme[] BY_MASK = new Forme[16];
++
++    static {
++        for (final Forme f : Forme.values()) {
++            BY_MASK[f.mask] = f;
++        }
++    }
++
 +    public static final EnumProperty<Forme> FORME = EnumProperty.create("forme", Forme.class);
 +
-+    // Contour de sélection plat (0.5 px de haut, pleine emprise). La COLLISION est vide (noCollision, propriétés).
++    // Contour de sélection plat (0.5 px). La COLLISION est vide (noCollision, propriétés).
 +    private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 0.5);
 +
 +    public SangBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
-+        this.registerDefaultState(this.stateDefinition.any().setValue(FORME, Forme.GOUTTE));
++        this.registerDefaultState(this.stateDefinition.any().setValue(FORME, Forme.NONE));
 +    }
 +
 +    @Override
@@ -88,97 +95,22 @@
 +        return SHAPE;
 +    }
 +
-+    // ===== Résolution connectée (le cœur de la Phase 1) =====
-+    // Inspecte les 4 voisins ORTHOGONAUX de MÊME altitude (N/S/E/O). Table §2 (tests actifs P1), dans l'ordre :
-+    //   - 2 voisins opposés (N+S ou E+O) -> traînée sur l'axe.
-+    //   - 1 seul voisin -> traînée sur l'axe du voisin.
-+    //   - sinon (0 voisin, ou coude/3-4 voisins hors périmètre P1) -> goutte.
-+    // Déterministe : l'ordre des tests EST la règle (indépendant de l'ordre de pose).
++    // Masque des 4 voisins orthogonaux de même altitude qui sont du sang.
 +    private static Forme resolve(final BlockGetter level, final BlockPos pos, final Block self) {
-+        final boolean n = level.getBlockState(pos.north()).is(self);
-+        final boolean s = level.getBlockState(pos.south()).is(self);
-+        final boolean e = level.getBlockState(pos.east()).is(self);
-+        final boolean w = level.getBlockState(pos.west()).is(self);
-+
-+        // Phase 2 — TEST 1 (flaque 2×2), PRIORITAIRE sur les traînées : le bloc est un COIN d'un carré 2×2 de
-+        // sang. Utilise les DIAGONALES (d'où la propagation aux diagonaux, cf. updateIndirectNeighbourShapes).
-+        // Ordre déterministe NW > NE > SW > SE (départage les recouvrements ; blob-tiling fin des grandes
-+        // flaques = P3). Convention : FLAQUE_NW = ce bloc est le coin Nord-Ouest, le carré s'étend vers E/S/SE.
-+        final boolean ne = level.getBlockState(pos.north().east()).is(self);
-+        final boolean nw = level.getBlockState(pos.north().west()).is(self);
-+        final boolean se = level.getBlockState(pos.south().east()).is(self);
-+        final boolean sw = level.getBlockState(pos.south().west()).is(self);
-+        if (n && s && e && w) {
-+            return Forme.FLAQUE_FULL; // Phase 3 : entouré des 4 orthogonaux -> fond plein (intérieur des grandes mares)
++        int mask = 0;
++        if (level.getBlockState(pos.north()).is(self)) {
++            mask |= 1;
 +        }
-+        if (e && s && se) {
-+            return Forme.FLAQUE_NW;
++        if (level.getBlockState(pos.south()).is(self)) {
++            mask |= 2;
 +        }
-+        if (w && s && sw) {
-+            return Forme.FLAQUE_NE;
++        if (level.getBlockState(pos.east()).is(self)) {
++            mask |= 4;
 +        }
-+        if (e && n && ne) {
-+            return Forme.FLAQUE_SW;
++        if (level.getBlockState(pos.west()).is(self)) {
++            mask |= 8;
 +        }
-+        if (w && n && nw) {
-+            return Forme.FLAQUE_SE;
-+        }
-+
-+        // TEST 2 — paire opposée -> traînée droite.
-+        if (n && s) {
-+            return Forme.TRAINEE_V; // paire opposée Nord-Sud -> traînée axe Z
-+        }
-+        if (e && w) {
-+            return Forme.TRAINEE_H; // paire opposée Est-Ouest -> traînée axe X
-+        }
-+        // TEST 4 (Phase 3) — coude : 2 voisins ADJACENTS (L), sans leur diagonale (sinon c'eût été une flaque).
-+        if (n && e) {
-+            return Forme.COUDE_NE;
-+        }
-+        if (n && w) {
-+            return Forme.COUDE_NW;
-+        }
-+        if (s && e) {
-+            return Forme.COUDE_SE;
-+        }
-+        if (s && w) {
-+            return Forme.COUDE_SW;
-+        }
-+        // TEST 5 (Phase 3) — repli : ici il reste au plus 1 voisin -> extrémité (cap) orientée vers lui.
-+        if (n) {
-+            return Forme.BOUT_N;
-+        }
-+        if (s) {
-+            return Forme.BOUT_S;
-+        }
-+        if (e) {
-+            return Forme.BOUT_E;
-+        }
-+        if (w) {
-+            return Forme.BOUT_W;
-+        }
-+        return Forme.GOUTTE; // TEST 6 — aucun voisin.
-+    }
-+
-+    // Phase 2 — propage la re-résolution aux 4 voisins DIAGONAUX. updateShape ne se déclenche que pour les 6
-+    // faces : sans ça, compléter un carré 2×2 par le bloc diagonalement opposé ne mettrait pas à jour le coin
-+    // opposé (aucune face ne le notifie). Appelé par Level.setBlock à la pose/casse (sur newState ET oldState).
-+    @Override
-+    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
-+                                                 final int updateFlags, final int updateLimit) {
-+        if (updateLimit <= 0) {
-+            return;
-+        }
-+        for (final BlockPos dp : new BlockPos[]{pos.north().east(), pos.north().west(), pos.south().east(), pos.south().west()}) {
-+            final BlockState ds = level.getBlockState(dp);
-+            if (ds.is(this)) {
-+                final Forme f = resolve(level, dp, this);
-+                if (ds.getValue(FORME) != f) {
-+                    // Sans UPDATE_NEIGHBORS : pas de cascade (les orthogonaux sont déjà couverts par updateShape).
-+                    level.setBlock(dp, ds.setValue(FORME, f), updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
-+                }
-+            }
-+        }
++        return BY_MASK[mask];
 +    }
 +
 +    @Override
@@ -201,13 +133,12 @@
 +        if (!state.canSurvive(level, pos)) {
 +            return Blocks.AIR.defaultBlockState();
 +        }
-+        // Un voisin de sang posé/cassé -> reconduire la résolution des 4 orthogonaux.
++        // Un voisin de sang (une des 4 faces) posé/cassé -> recalculer le masque.
 +        return state.setValue(FORME, resolve(level, pos, this));
 +    }
 +
 +    @Override
 +    public boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
-+        // Posé au sol : nécessite une face supérieure solide sous le bloc.
 +        final BlockPos below = pos.below();
 +        return level.getBlockState(below).isFaceSturdy(level, below, Direction.UP);
 +    }

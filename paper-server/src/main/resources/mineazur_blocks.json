@@ -256,7 +256,7 @@
         "resistance": 0.0,
         "sound": "WOOL",
         "mapColor": "NETHER",
-        "states": ["goutte", "trainee_h", "trainee_v", "flaque_nw", "flaque_ne", "flaque_sw", "flaque_se", "coude_ne", "coude_nw", "coude_se", "coude_sw", "bout_n", "bout_s", "bout_e", "bout_w", "flaque_full"]
+        "states": ["none", "n", "s", "ns", "e", "ne", "se", "nse", "w", "nw", "sw", "nsw", "ew", "new", "sew", "nsew"]
       }
     }
   ]
