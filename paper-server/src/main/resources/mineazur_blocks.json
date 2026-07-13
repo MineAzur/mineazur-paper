@@ -256,7 +256,7 @@
         "resistance": 0.0,
         "sound": "WOOL",
         "mapColor": "NETHER",
-        "states": ["goutte", "trainee_h", "trainee_v"]
+        "states": ["goutte", "trainee_h", "trainee_v", "flaque_nw", "flaque_ne", "flaque_sw", "flaque_se"]
       }
     }
   ]

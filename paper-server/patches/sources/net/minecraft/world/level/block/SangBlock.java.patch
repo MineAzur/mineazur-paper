@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,130 @@
+@@ -1,0 +_,179 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -10,6 +10,7 @@
 +import net.minecraft.util.StringRepresentable;
 +import net.minecraft.world.item.context.BlockPlaceContext;
 +import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelAccessor;
 +import net.minecraft.world.level.LevelReader;
 +import net.minecraft.world.level.ScheduledTickAccess;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -36,7 +37,13 @@
 +    public enum Forme implements StringRepresentable {
 +        GOUTTE("goutte"),
 +        TRAINEE_H("trainee_h"),
-+        TRAINEE_V("trainee_v");
++        TRAINEE_V("trainee_v"),
++        // Phase 2 — flaque 2×2 : chaque bloc = un COIN du carré. Ajoutés EN FIN → préserve l'alignement des
++        // 3 états P1 (indices 0/1/2 inchangés, invariant I1/I3).
++        FLAQUE_NW("flaque_nw"),
++        FLAQUE_NE("flaque_ne"),
++        FLAQUE_SW("flaque_sw"),
++        FLAQUE_SE("flaque_se");
 +
 +        private final String name;
 +
@@ -82,6 +89,27 @@
 +        final boolean e = level.getBlockState(pos.east()).is(self);
 +        final boolean w = level.getBlockState(pos.west()).is(self);
 +
++        // Phase 2 — TEST 1 (flaque 2×2), PRIORITAIRE sur les traînées : le bloc est un COIN d'un carré 2×2 de
++        // sang. Utilise les DIAGONALES (d'où la propagation aux diagonaux, cf. updateIndirectNeighbourShapes).
++        // Ordre déterministe NW > NE > SW > SE (départage les recouvrements ; blob-tiling fin des grandes
++        // flaques = P3). Convention : FLAQUE_NW = ce bloc est le coin Nord-Ouest, le carré s'étend vers E/S/SE.
++        final boolean ne = level.getBlockState(pos.north().east()).is(self);
++        final boolean nw = level.getBlockState(pos.north().west()).is(self);
++        final boolean se = level.getBlockState(pos.south().east()).is(self);
++        final boolean sw = level.getBlockState(pos.south().west()).is(self);
++        if (e && s && se) {
++            return Forme.FLAQUE_NW;
++        }
++        if (w && s && sw) {
++            return Forme.FLAQUE_NE;
++        }
++        if (e && n && ne) {
++            return Forme.FLAQUE_SW;
++        }
++        if (w && n && nw) {
++            return Forme.FLAQUE_SE;
++        }
++
 +        if (n && s) {
 +            return Forme.TRAINEE_V; // paire opposée Nord-Sud -> traînée axe Z
 +        }
@@ -92,7 +120,28 @@
 +        if (count == 1) {
 +            return (n || s) ? Forme.TRAINEE_V : Forme.TRAINEE_H; // un seul voisin -> traînée sur son axe
 +        }
-+        return Forme.GOUTTE; // 0 voisin (test 6) ; coude (2 adjacents) / 3-4 voisins -> goutte en P1 (tests 4/5 = P2/P3)
++        return Forme.GOUTTE; // 0 voisin (test 6) ; coude (2 adjacents non-flaque) -> goutte en P1/P2 (test 4 = P3)
++    }
++
++    // Phase 2 — propage la re-résolution aux 4 voisins DIAGONAUX. updateShape ne se déclenche que pour les 6
++    // faces : sans ça, compléter un carré 2×2 par le bloc diagonalement opposé ne mettrait pas à jour le coin
++    // opposé (aucune face ne le notifie). Appelé par Level.setBlock à la pose/casse (sur newState ET oldState).
++    @Override
++    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
++                                                 final int updateFlags, final int updateLimit) {
++        if (updateLimit <= 0) {
++            return;
++        }
++        for (final BlockPos dp : new BlockPos[]{pos.north().east(), pos.north().west(), pos.south().east(), pos.south().west()}) {
++            final BlockState ds = level.getBlockState(dp);
++            if (ds.is(this)) {
++                final Forme f = resolve(level, dp, this);
++                if (ds.getValue(FORME) != f) {
++                    // Sans UPDATE_NEIGHBORS : pas de cascade (les orthogonaux sont déjà couverts par updateShape).
++                    level.setBlock(dp, ds.setValue(FORME, f), updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
++                }
++            }
++        }
 +    }
 +
 +    @Override
