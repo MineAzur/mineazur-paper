@@ -1,0 +1,133 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/SangBlock.java
+@@ -1,0 +_,130 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.util.StringRepresentable;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.EnumProperty;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Premier bloc NOUVEAU (pas une résurrection) et premier bloc
++// CONNECTÉ/dynamique : sa forme émerge du voisinage (comme la redstone). PHASE 1 : mécanisme de base seulement
++// (goutte + traînée droite), preuve de la résolution dynamique + de l'alignement garde AVANT flaque/coudes (P2/P3).
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock (mod NeoForge). L'ordre des valeurs de l'enum Forme + le
++// builder.add(FORME) DOIVENT être identiques des deux côtés, sinon les stateIds de palette divergent (I3).
++//
++// Plat, non-solide, traversable (noCollision côté propriétés) : on marche dessus comme sur une peinture au sol.
++public class SangBlock extends Block {
++    public static final MapCodec<SangBlock> CODEC = simpleCodec(SangBlock::new);
++
++    // Forme résolue par le voisinage. ORDRE CANONIQUE P1 (invariant I3, identique client) : les états P2/P3
++    // (flaque, coudes…) s'ajouteront EN FIN pour préserver l'alignement des états P1 déjà validés.
++    // Convention d'axe (vue de dessus) : H = axe Est-Ouest (X) ; V = axe Nord-Sud (Z).
++    public enum Forme implements StringRepresentable {
++        GOUTTE("goutte"),
++        TRAINEE_H("trainee_h"),
++        TRAINEE_V("trainee_v");
++
++        private final String name;
++
++        Forme(final String name) {
++            this.name = name;
++        }
++
++        @Override
++        public String getSerializedName() {
++            return this.name;
++        }
++    }
++
++    public static final EnumProperty<Forme> FORME = EnumProperty.create("forme", Forme.class);
++
++    // Contour de sélection plat (0.5 px de haut, pleine emprise). La COLLISION est vide (noCollision, propriétés).
++    private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 0.5);
++
++    public SangBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any().setValue(FORME, Forme.GOUTTE));
++    }
++
++    @Override
++    protected MapCodec<SangBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPE;
++    }
++
++    // ===== Résolution connectée (le cœur de la Phase 1) =====
++    // Inspecte les 4 voisins ORTHOGONAUX de MÊME altitude (N/S/E/O). Table §2 (tests actifs P1), dans l'ordre :
++    //   - 2 voisins opposés (N+S ou E+O) -> traînée sur l'axe.
++    //   - 1 seul voisin -> traînée sur l'axe du voisin.
++    //   - sinon (0 voisin, ou coude/3-4 voisins hors périmètre P1) -> goutte.
++    // Déterministe : l'ordre des tests EST la règle (indépendant de l'ordre de pose).
++    private static Forme resolve(final BlockGetter level, final BlockPos pos, final Block self) {
++        final boolean n = level.getBlockState(pos.north()).is(self);
++        final boolean s = level.getBlockState(pos.south()).is(self);
++        final boolean e = level.getBlockState(pos.east()).is(self);
++        final boolean w = level.getBlockState(pos.west()).is(self);
++
++        if (n && s) {
++            return Forme.TRAINEE_V; // paire opposée Nord-Sud -> traînée axe Z
++        }
++        if (e && w) {
++            return Forme.TRAINEE_H; // paire opposée Est-Ouest -> traînée axe X
++        }
++        final int count = (n ? 1 : 0) + (s ? 1 : 0) + (e ? 1 : 0) + (w ? 1 : 0);
++        if (count == 1) {
++            return (n || s) ? Forme.TRAINEE_V : Forme.TRAINEE_H; // un seul voisin -> traînée sur son axe
++        }
++        return Forme.GOUTTE; // 0 voisin (test 6) ; coude (2 adjacents) / 3-4 voisins -> goutte en P1 (tests 4/5 = P2/P3)
++    }
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        return this.defaultBlockState().setValue(FORME, resolve(context.getLevel(), context.getClickedPos(), this));
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        // Support retiré sous le bloc -> disparaît (comme redstone/tapis ; le drop manuel passe par la loot table).
++        if (!state.canSurvive(level, pos)) {
++            return Blocks.AIR.defaultBlockState();
++        }
++        // Un voisin de sang posé/cassé -> reconduire la résolution des 4 orthogonaux.
++        return state.setValue(FORME, resolve(level, pos, this));
++    }
++
++    @Override
++    public boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
++        // Posé au sol : nécessite une face supérieure solide sous le bloc.
++        final BlockPos below = pos.below();
++        return level.getBlockState(below).isFaceSturdy(level, below, Direction.UP);
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(FORME);
++    }
++}

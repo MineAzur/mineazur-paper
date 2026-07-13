@@ -55,6 +55,8 @@ shaped("chair", ["S# ","#X#","# #"], {"#":V+"oak_fence","X":M+"plafond","S":M+"v
 shaped("toit", ["  X"," XX","XXX"], {"X":M+"bois_verni"}, M+"toit", 4)
 shaped("bois_verni", ["XXX","X#X","XXX"], {"X":V+"oak_planks","#":M+"vernis"}, M+"bois_verni", 4)
 shaped("dalle", ["XX","XX"], {"X":V+"stone_bricks"}, M+"dalle", 4)
+# sang (bloc NOUVEAU, connecté) : oeil d'araignee + poudre de redstone -> gros rendement.
+shapeless("sang", [V+"spider_eye", V+"redstone", V+"redstone", V+"redstone", V+"redstone"], M+"sang", 8)
 
 # --- items divers / nourriture ---
 shaped("chope", ["# #","# #","###"], {"#":V+"glass"}, M+"chope", 4)

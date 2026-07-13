@@ -242,6 +242,22 @@
         "sound": "WOOD",
         "mapColor": "WOOD"
       }
+    },
+    {
+      "_comment": "Premier bloc NOUVEAU (pas une resurrection) et premier bloc CONNECTE/dynamique. Ajoute EN FIN de liste (les 3 nouveaux etats de palette s'ajoutent apres les 23 blocs deja alignes, invariant I1). legacyId 206 = libre, jamais present sur l'ancienne map (aucun remap Phase 2). archetype 'connected' = multi-etats: la classe SangBlock fixe l'ordre de l'enum de forme (I3). 'states' = documentation de l'ordre canonique P1 (les futurs etats P2/P3 s'ajoutent EN FIN).",
+      "legacyId": 206,
+      "name": "sang",
+      "archetype": "connected",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 0.0,
+        "resistance": 0.0,
+        "sound": "WOOL",
+        "mapColor": "NETHER",
+        "states": ["goutte", "trainee_h", "trainee_v"]
+      }
     }
   ]
 }

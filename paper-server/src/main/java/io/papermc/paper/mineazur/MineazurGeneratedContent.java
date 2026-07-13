@@ -34,6 +34,7 @@ import net.minecraft.world.level.block.ChairBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.MineazurWoolStairsBlock;
+import net.minecraft.world.level.block.SangBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -43,6 +44,7 @@ import net.minecraft.world.item.component.Consumables;
 import net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
+import net.minecraft.world.level.material.PushReaction;
 
 /**
  * MineAzur — générateur runtime des blocs/items custom, piloté par la source unique
@@ -137,6 +139,10 @@ public final class MineazurGeneratedContent {
                 if (!s.occlusion()) {
                     props.noOcclusion();
                 }
+                if ("connected".equals(s.archetype())) {
+                    // Bloc plat non-solide (peint au sol) : traversable + détruit par un piston (comme la redstone).
+                    props.noCollision().pushReaction(PushReaction.DESTROY);
+                }
                 props.setId(key);
                 block = create(s, props);
             }
@@ -149,6 +155,7 @@ public final class MineazurGeneratedContent {
             case "simple" -> s.directional() ? new MineazurHorizontalBlock(props) : new Block(props);
             case "chair" -> new ChairBlock(props);
             case "plafond" -> new PlafondBlock(props);
+            case "connected" -> new SangBlock(props);
             default -> throw new IllegalStateException("archétype non supporté : " + s.archetype());
         };
     }
@@ -257,6 +264,7 @@ public final class MineazurGeneratedContent {
             case "WOOD" -> MapColor.WOOD;
             case "STONE" -> MapColor.STONE;
             case "SAND" -> MapColor.SAND;
+            case "NETHER" -> MapColor.NETHER;
             default -> throw new IllegalStateException("mapColor non mappé : " + name);
         };
     }
@@ -266,6 +274,7 @@ public final class MineazurGeneratedContent {
             case "WOOD" -> SoundType.WOOD;
             case "STONE" -> SoundType.STONE;
             case "GLASS" -> SoundType.GLASS;
+            case "WOOL" -> SoundType.WOOL;
             default -> throw new IllegalStateException("sound non mappé : " + name);
         };
     }
