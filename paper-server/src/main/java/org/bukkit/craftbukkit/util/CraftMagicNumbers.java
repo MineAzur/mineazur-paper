@@ -169,7 +169,15 @@ public final class CraftMagicNumbers implements UnsafeValues {
 
     static {
         for (Block block : BuiltInRegistries.BLOCK) {
-            BLOCK_MATERIAL.put(block, Material.getMaterial(BuiltInRegistries.BLOCK.getKey(block).getPath().toUpperCase(Locale.ROOT)));
+            var mzKey = BuiltInRegistries.BLOCK.getKey(block);
+            Material mzMat = Material.getMaterial(mzKey.getPath().toUpperCase(Locale.ROOT));
+            // MineAzur : les blocs custom (mineazur:*) n'ont pas d'entrée dans l'enum Material (figé, non
+            // extensible) -> getType() renverrait null et crasherait WorldGuard/plugins. Fallback vanilla PROCHE
+            // (stairs -> OAK_STAIRS, sinon STONE). getBlockType() (registre, extensible) reste correct pour nous.
+            if (mzMat == null && "mineazur".equals(mzKey.getNamespace())) {
+                mzMat = (block instanceof net.minecraft.world.level.block.StairBlock) ? Material.OAK_STAIRS : Material.STONE;
+            }
+            BLOCK_MATERIAL.put(block, mzMat);
         }
 
         for (Item item : BuiltInRegistries.ITEM) {
