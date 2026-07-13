@@ -265,6 +265,8 @@ public final class MineazurGeneratedContent {
             case "STONE" -> MapColor.STONE;
             case "SAND" -> MapColor.SAND;
             case "NETHER" -> MapColor.NETHER;
+            case "BLUE" -> MapColor.COLOR_BLUE;
+            case "RED" -> MapColor.COLOR_RED;
             default -> throw new IllegalStateException("mapColor non mappé : " + name);
         };
     }

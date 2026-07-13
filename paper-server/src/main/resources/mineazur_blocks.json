@@ -258,6 +258,35 @@
         "mapColor": "NETHER",
         "states": "shape:0..46 (blob conscient des 8 voisins ; index = table signature->index, cf. gen_sang_textures.py + SangBlock)"
       }
+    },
+    {
+      "_comment": "Objectifs du Capture The Cube (plugin mineazur-events, Phase 3). Blocs pleins statiques, distinctifs par equipe (bleu/rouge), remplacent les blocs-drapeaux quelconques de 2011. Ajoutes EN FIN (invariant I1) : leurs etats de palette s'ajoutent apres les blocs deja alignes. legacyId 207/208 = ordre d'enregistrement pur (blocs NOUVEAUX, jamais sur l'ancienne map, aucun remap Phase 2).",
+      "legacyId": 207,
+      "name": "cube_bleu",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 6.0,
+        "sound": "STONE",
+        "mapColor": "BLUE"
+      }
+    },
+    {
+      "legacyId": 208,
+      "name": "cube_rouge",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 6.0,
+        "sound": "STONE",
+        "mapColor": "RED"
+      }
     }
   ]
 }
