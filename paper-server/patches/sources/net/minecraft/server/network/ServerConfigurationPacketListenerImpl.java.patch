@@ -1,6 +1,15 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
-@@ -52,12 +_,26 @@
+@@ -46,18 +_,35 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final Component DISCONNECT_REASON_INVALID_DATA = Component.translatable("multiplayer.disconnect.invalid_player_data");
+     private static final Component DISCONNECT_REASON_CONFIGURATION_ERROR = Component.translatable("multiplayer.disconnect.configuration_error");
++    // MineAzur — gate serveur (handshake mod client) : reçu ? + compteur de ticks config pour le timeout.
++    private boolean mineazurHelloOk = false;
++    private int mineazurConfigTicks = 0;
+     private final GameProfile gameProfile;
+     private final Queue<ConfigurationTask> configurationTasks = new ConcurrentLinkedQueue<>();
+     public @Nullable ConfigurationTask currentTask;
      public ClientInformation clientInformation;
      private @Nullable SynchronizeRegistriesTask synchronizeRegistriesTask;
      private @Nullable PrepareSpawnTask prepareSpawnTask;
@@ -88,6 +97,19 @@
              this.finishCurrentTask(ServerResourcePackConfigurationTask.TYPE);
          }
      }
+@@ -159,6 +_,12 @@
+     @Override
+     public void handleConfigurationFinished(final ServerboundFinishConfigurationPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
++        // MineAzur — gate serveur : exiger le handshake du mod AVANT le passage en jeu (sinon = client vanilla /
++        // mauvaise version → refus PROPRE, avant le 1er chunk qui ferait crasher un vanilla sur les IDs custom).
++        if (io.papermc.paper.mineazur.MineazurConfig.get().requireMod() && !this.mineazurHelloOk) {
++            this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickNoMod()));
++            return;
++        }
+         this.finishCurrentTask(JoinWorldTask.TYPE);
+         this.connection.setupOutboundProtocol(GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess())));
+ 
 @@ -169,7 +_,7 @@
                  return;
              }
@@ -97,7 +119,20 @@
              if (loginError != null) {
                  this.disconnect(loginError);
                  return;
-@@ -231,4 +_,29 @@
+@@ -200,6 +_,12 @@
+         if (this.prepareSpawnTask != null) {
+             this.prepareSpawnTask.keepAlive();
+         }
++
++        // MineAzur — gate serveur : timeout du handshake (client qui traîne / ne le finit jamais).
++        if (io.papermc.paper.mineazur.MineazurConfig.get().requireMod() && !this.mineazurHelloOk
++                && ++this.mineazurConfigTicks > io.papermc.paper.mineazur.MineazurConfig.get().timeoutTicks()) {
++            this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickNoMod()));
++        }
+     }
+ 
+     private void startNextTask() {
+@@ -231,4 +_,42 @@
          this.currentTask = null;
          this.startNextTask();
      }
@@ -118,6 +153,19 @@
 +
 +    @Override
 +    public void handleCustomPayload(net.minecraft.network.protocol.common.ServerboundCustomPayloadPacket packet) {
++        // MineAzur — gate serveur : capter le handshake du mod client (mineazur:hello). Tout payload serverbound
++        // arrive en DiscardedPayload(id, byte[]) → on lit les octets et on valide la version.
++        if (packet.payload() instanceof net.minecraft.network.protocol.common.custom.DiscardedPayload dp
++                && io.papermc.paper.mineazur.MineazurHandshake.HELLO_CHANNEL.equals(dp.id())) {
++            final io.papermc.paper.mineazur.MineazurHandshake.Result r =
++                io.papermc.paper.mineazur.MineazurHandshake.check(dp.data());
++            switch (r.status()) {
++                case OK -> this.mineazurHelloOk = true;
++                case BAD_VERSION -> this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickBadVersion()));
++                case MALFORMED -> { /* ignoré : traité comme non-reçu, le gate/timeout coupera */ }
++            }
++            return;
++        }
 +        super.handleCustomPayload(packet);
 +    }
 +
