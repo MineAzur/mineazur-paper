@@ -71,6 +71,16 @@ public final class MineazurGeneratedContent {
         11, SoundEvents.ARMOR_EQUIP_DIAMOND, 2.0F, 0.0F, OBSIDIAN_INGOTS,
         ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "obsidienne")));
 
+    // Matériau du COSTUME Zehir 2012 (soulier/pentalon/smoking) : COSMÉTIQUE — protection [0,0,0,0], ench 0, non
+    // réparable (tag vide). Seule compte l'apparence portée (assetId mineazur:costume -> calques equipment). Évite
+    // tout déséquilibre PvP (décision B3).
+    private static final TagKey<Item> COSTUME_REPAIR = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("mineazur", "costume_repair"));
+    private static final ArmorMaterial COSTUME_ARMOR = new ArmorMaterial(
+        15,
+        new EnumMap<>(Map.of(ArmorType.BOOTS, 0, ArmorType.LEGGINGS, 0, ArmorType.CHESTPLATE, 0, ArmorType.HELMET, 0, ArmorType.BODY, 0)),
+        0, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, COSTUME_REPAIR,
+        ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "costume")));
+
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
                         float hardness, float resistance, String sound, String mapColor, String base) {}
 
@@ -214,6 +224,7 @@ public final class MineazurGeneratedContent {
                 case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
                 case "armor" -> props.humanoidArmor(OBSIDIENNE_ARMOR, armorType(s.slot()));
+                case "cosmetic" -> props.humanoidArmor(COSTUME_ARMOR, armorType(s.slot()));
                 default -> { /* plain / thrower */ }
             }
             props.setId(key);

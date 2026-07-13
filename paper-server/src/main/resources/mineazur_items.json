@@ -86,6 +86,52 @@
     {
       "name": "shuriken",
       "archetype": "thrower"
+    },
+    {
+      "_comment": "Lot A MAJ Zehir 2012 (cf. reference/ZEHIR_2012_BACKLOG.md) : append-only APRES shuriken. 5 foods + costume cosmetique (archetype 'cosmetic' = armure a PROTECTION NULLE, uniquement l'apparence portee).",
+      "name": "hot_zehir_chili",
+      "archetype": "food",
+      "nutrition": 6,
+      "saturation": 0.6
+    },
+    {
+      "name": "dragon_omelette",
+      "archetype": "food",
+      "nutrition": 8,
+      "saturation": 0.8
+    },
+    {
+      "name": "sebcake",
+      "archetype": "food",
+      "nutrition": 5,
+      "saturation": 0.4
+    },
+    {
+      "name": "stickoburger",
+      "archetype": "food",
+      "nutrition": 8,
+      "saturation": 0.8
+    },
+    {
+      "name": "maki_girakanzu",
+      "archetype": "food",
+      "nutrition": 6,
+      "saturation": 0.6
+    },
+    {
+      "name": "soulier",
+      "archetype": "cosmetic",
+      "slot": "boots"
+    },
+    {
+      "name": "pentalon",
+      "archetype": "cosmetic",
+      "slot": "leggings"
+    },
+    {
+      "name": "smoking",
+      "archetype": "cosmetic",
+      "slot": "chestplate"
     }
   ]
 }
