@@ -97,19 +97,22 @@
              this.finishCurrentTask(ServerResourcePackConfigurationTask.TYPE);
          }
      }
-@@ -159,6 +_,12 @@
-     @Override
-     public void handleConfigurationFinished(final ServerboundFinishConfigurationPacket packet) {
-         PacketUtils.ensureRunningOnSameThread(packet, this, this.server.packetProcessor());
+@@ -162,6 +_,15 @@
+         this.finishCurrentTask(JoinWorldTask.TYPE);
+         this.connection.setupOutboundProtocol(GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess())));
+ 
 +        // MineAzur — gate serveur : exiger le handshake du mod AVANT le passage en jeu (sinon = client vanilla /
-+        // mauvaise version → refus PROPRE, avant le 1er chunk qui ferait crasher un vanilla sur les IDs custom).
++        // mauvaise version → refus, avant le 1er chunk qui ferait crasher un vanilla sur les IDs custom). Placé
++        // APRÈS setupOutboundProtocol (comme le refus duplicate-login vanilla) pour que le MESSAGE s'affiche au
++        // joueur (le client a déjà basculé en protocole PLAY ; un disconnect en protocole config ne s'y décode pas).
 +        if (io.papermc.paper.mineazur.MineazurConfig.get().requireMod() && !this.mineazurHelloOk) {
 +            this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickNoMod()));
 +            return;
 +        }
-         this.finishCurrentTask(JoinWorldTask.TYPE);
-         this.connection.setupOutboundProtocol(GameProtocols.CLIENTBOUND_TEMPLATE.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess())));
- 
++
+         try {
+             PlayerList playerList = this.server.getPlayerList();
+             if (playerList.getPlayer(this.gameProfile.id()) != null) {
 @@ -169,7 +_,7 @@
                  return;
              }
@@ -132,7 +135,7 @@
      }
  
      private void startNextTask() {
-@@ -231,4 +_,42 @@
+@@ -231,4 +_,48 @@
          this.currentTask = null;
          this.startNextTask();
      }
@@ -160,9 +163,15 @@
 +            final io.papermc.paper.mineazur.MineazurHandshake.Result r =
 +                io.papermc.paper.mineazur.MineazurHandshake.check(dp.data());
 +            switch (r.status()) {
-+                case OK -> this.mineazurHelloOk = true;
-+                case BAD_VERSION -> this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickBadVersion()));
-+                case MALFORMED -> { /* ignoré : traité comme non-reçu, le gate/timeout coupera */ }
++                case OK -> {
++                    this.mineazurHelloOk = true;
++                    LOGGER.info("MineAzur: handshake mod client reçu (version {}) — join autorisé.", r.modVersion());
++                }
++                case BAD_VERSION -> {
++                    LOGGER.info("MineAzur: version de mod incompatible ({}) — refus.", r.modVersion());
++                    this.disconnect(Component.literal(io.papermc.paper.mineazur.MineazurConfig.get().kickBadVersion()));
++                }
++                case MALFORMED -> LOGGER.warn("MineAzur: handshake mineazur:hello malformé — ignoré.");
 +            }
 +            return;
 +        }
