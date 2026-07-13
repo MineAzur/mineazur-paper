@@ -1,88 +1,75 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,147 @@
+@@ -1,0 +_,148 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
++import java.util.Arrays;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
 +import net.minecraft.util.RandomSource;
-+import net.minecraft.util.StringRepresentable;
 +import net.minecraft.world.item.context.BlockPlaceContext;
 +import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelAccessor;
 +import net.minecraft.world.level.LevelReader;
 +import net.minecraft.world.level.ScheduledTickAccess;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.StateDefinition;
-+import net.minecraft.world.level.block.state.properties.EnumProperty;
++import net.minecraft.world.level.block.state.properties.IntegerProperty;
 +import net.minecraft.world.phys.shapes.CollisionContext;
 +import net.minecraft.world.phys.shapes.VoxelShape;
 +
-+// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Décal de sang au sol, CONNECTÉ : sa forme émerge du voisinage.
++// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Décal de sang au sol, CONNECTÉ.
 +//
-+// Modèle par MASQUE des 4 voisins ORTHOGONAUX (16 états). Chaque état = une combinaison de voisins N/S/E/O ;
-+// sa texture est opaque jusqu'au bord côté voisin (raccord net) et organique côté ouvert -> une mare continue
-+// de taille quelconque, sans couture. Le masque ne dépendant QUE des 4 faces, updateShape (qui se déclenche
-+// sur ces faces) suffit à la re-résolution — pas besoin de propagation diagonale.
++// Rendu « blob » conscient des 8 voisins (47 formes). Chaque bloc calcule une SIGNATURE de son voisinage : côtés
++// connectés (raccord opaque net) + coins arrondis (un coin dont les 2 côtés sont connectés mais la diagonale
++// vide est arrondi → adoucit le « carré plein »). La propriété est un entier `shape` 0..46 ; la table
++// signature→index est construite en itérant les 256 combinaisons (ordre de 1ʳᵉ vue).
 +//
-+// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock. L'ORDRE de déclaration de l'enum Forme (= ordre du masque
-+// 0..15) DOIT être identique des deux côtés, sinon les stateIds de palette divergent (I3).
++// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock ET de client-mod/tools/gen_sang_textures.py : la fonction
++// sig(), l'ordre d'itération 0..255 et la propriété `shape` (0..46) DOIVENT être identiques, sinon les stateIds
++// de palette / les textures divergent (I3). shape=index -> texture/modèle mineazur:block/sang_<index>.
 +//
-+// Plat, non-solide, traversable (noCollision) : on marche dessus comme sur une peinture au sol.
++// Le shape dépend des DIAGONALES → updateShape (faces) ne suffit pas : on propage aussi aux 4 diagonaux
++// (updateIndirectNeighbourShapes). Plat, non-solide (noCollision), traversable.
 +public class SangBlock extends Block {
 +    public static final MapCodec<SangBlock> CODEC = simpleCodec(SangBlock::new);
 +
-+    // Forme = masque des voisins. ORDRE = valeur du masque 0..15 (N=1, S=2, E=4, W=8). Le nom sérialisé liste
-+    // les côtés CONNECTÉS dans l'ordre NSEW (ou "none"), et sert de clé texture/modèle côté client.
-+    public enum Forme implements StringRepresentable {
-+        NONE("none", 0),
-+        N("n", 1),
-+        S("s", 2),
-+        NS("ns", 3),
-+        E("e", 4),
-+        NE("ne", 5),
-+        SE("se", 6),
-+        NSE("nse", 7),
-+        W("w", 8),
-+        NW("nw", 9),
-+        SW("sw", 10),
-+        NSW("nsw", 11),
-+        EW("ew", 12),
-+        NEW("new", 13),
-+        SEW("sew", 14),
-+        NSEW("nsew", 15);
-+
-+        private final String name;
-+        private final int mask;
-+
-+        Forme(final String name, final int mask) {
-+            this.name = name;
-+            this.mask = mask;
-+        }
-+
-+        @Override
-+        public String getSerializedName() {
-+            return this.name;
-+        }
++    // Signature 8 bits : n,s,e,w (côtés connectés) + coin rempli NW/NE/SW/SE (2 côtés + diagonale). <=47 valeurs.
++    private static int sig(final int raw) {
++        final boolean n = (raw & 1) != 0, s = (raw & 2) != 0, e = (raw & 4) != 0, w = (raw & 8) != 0;
++        final boolean ne = (raw & 16) != 0, nw = (raw & 32) != 0, se = (raw & 64) != 0, sw = (raw & 128) != 0;
++        final int cNW = (n && w && nw) ? 1 : 0;
++        final int cNE = (n && e && ne) ? 1 : 0;
++        final int cSW = (s && w && sw) ? 1 : 0;
++        final int cSE = (s && e && se) ? 1 : 0;
++        return (n ? 1 : 0) | (s ? 2 : 0) | (e ? 4 : 0) | (w ? 8 : 0) | (cNW << 4) | (cNE << 5) | (cSW << 6) | (cSE << 7);
 +    }
 +
-+    private static final Forme[] BY_MASK = new Forme[16];
++    private static final int[] SHAPE_BY_SIG = new int[256];
++    public static final int SHAPE_COUNT;
 +
 +    static {
-+        for (final Forme f : Forme.values()) {
-+            BY_MASK[f.mask] = f;
++        Arrays.fill(SHAPE_BY_SIG, -1);
++        int next = 0;
++        for (int raw = 0; raw < 256; raw++) {
++            final int sg = sig(raw);
++            if (SHAPE_BY_SIG[sg] < 0) {
++                SHAPE_BY_SIG[sg] = next++;
++            }
 +        }
++        SHAPE_COUNT = next; // 47 (jeu blob standard) — voir gen_sang_textures.py
 +    }
 +
-+    public static final EnumProperty<Forme> FORME = EnumProperty.create("forme", Forme.class);
++    public static final IntegerProperty SHAPE = IntegerProperty.create("shape", 0, 46);
 +
 +    // Contour de sélection plat (0.5 px). La COLLISION est vide (noCollision, propriétés).
-+    private static final VoxelShape SHAPE = Block.column(16.0, 0.0, 0.5);
++    private static final VoxelShape SHAPE_BOX = Block.column(16.0, 0.0, 0.5);
 +
 +    public SangBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
-+        this.registerDefaultState(this.stateDefinition.any().setValue(FORME, Forme.NONE));
++        this.registerDefaultState(this.stateDefinition.any().setValue(SHAPE, 0));
 +    }
 +
 +    @Override
@@ -92,30 +79,26 @@
 +
 +    @Override
 +    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
-+        return SHAPE;
++        return SHAPE_BOX;
 +    }
 +
-+    // Masque des 4 voisins orthogonaux de même altitude qui sont du sang.
-+    private static Forme resolve(final BlockGetter level, final BlockPos pos, final Block self) {
-+        int mask = 0;
-+        if (level.getBlockState(pos.north()).is(self)) {
-+            mask |= 1;
-+        }
-+        if (level.getBlockState(pos.south()).is(self)) {
-+            mask |= 2;
-+        }
-+        if (level.getBlockState(pos.east()).is(self)) {
-+            mask |= 4;
-+        }
-+        if (level.getBlockState(pos.west()).is(self)) {
-+            mask |= 8;
-+        }
-+        return BY_MASK[mask];
++    // Index de forme depuis les 8 voisins. Bits : n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128 (IDENTIQUE Python).
++    private static int resolve(final BlockGetter level, final BlockPos pos, final Block self) {
++        int raw = 0;
++        if (level.getBlockState(pos.north()).is(self)) raw |= 1;
++        if (level.getBlockState(pos.south()).is(self)) raw |= 2;
++        if (level.getBlockState(pos.east()).is(self)) raw |= 4;
++        if (level.getBlockState(pos.west()).is(self)) raw |= 8;
++        if (level.getBlockState(pos.north().east()).is(self)) raw |= 16;
++        if (level.getBlockState(pos.north().west()).is(self)) raw |= 32;
++        if (level.getBlockState(pos.south().east()).is(self)) raw |= 64;
++        if (level.getBlockState(pos.south().west()).is(self)) raw |= 128;
++        return SHAPE_BY_SIG[sig(raw)];
 +    }
 +
 +    @Override
 +    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        return this.defaultBlockState().setValue(FORME, resolve(context.getLevel(), context.getClickedPos(), this));
++        return this.defaultBlockState().setValue(SHAPE, resolve(context.getLevel(), context.getClickedPos(), this));
 +    }
 +
 +    @Override
@@ -129,12 +112,30 @@
 +        final BlockState neighbourState,
 +        final RandomSource random
 +    ) {
-+        // Support retiré sous le bloc -> disparaît (comme redstone/tapis ; le drop manuel passe par la loot table).
 +        if (!state.canSurvive(level, pos)) {
 +            return Blocks.AIR.defaultBlockState();
 +        }
-+        // Un voisin de sang (une des 4 faces) posé/cassé -> recalculer le masque.
-+        return state.setValue(FORME, resolve(level, pos, this));
++        return state.setValue(SHAPE, resolve(level, pos, this));
++    }
++
++    // Le shape dépend des diagonales → propager la re-résolution aux 4 voisins diagonaux (updateShape ne couvre
++    // que les faces). Appelé par Level.setBlock à la pose/casse (newState + oldState). Sans UPDATE_NEIGHBORS =
++    // pas de cascade ; seulement si le shape change (anti-boucle) ; borné par updateLimit.
++    @Override
++    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
++                                                 final int updateFlags, final int updateLimit) {
++        if (updateLimit <= 0) {
++            return;
++        }
++        for (final BlockPos dp : new BlockPos[]{pos.north().east(), pos.north().west(), pos.south().east(), pos.south().west()}) {
++            final BlockState ds = level.getBlockState(dp);
++            if (ds.is(this)) {
++                final int idx = resolve(level, dp, this);
++                if (ds.getValue(SHAPE) != idx) {
++                    level.setBlock(dp, ds.setValue(SHAPE, idx), updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
++                }
++            }
++        }
 +    }
 +
 +    @Override
@@ -145,6 +146,6 @@
 +
 +    @Override
 +    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
-+        builder.add(FORME);
++        builder.add(SHAPE);
 +    }
 +}

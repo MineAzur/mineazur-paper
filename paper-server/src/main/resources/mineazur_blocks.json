@@ -256,7 +256,7 @@
         "resistance": 0.0,
         "sound": "WOOL",
         "mapColor": "NETHER",
-        "states": ["none", "n", "s", "ns", "e", "ne", "se", "nse", "w", "nw", "sw", "nsw", "ew", "new", "sew", "nsew"]
+        "states": "shape:0..46 (blob conscient des 8 voisins ; index = table signature->index, cf. gen_sang_textures.py + SangBlock)"
       }
     }
   ]
