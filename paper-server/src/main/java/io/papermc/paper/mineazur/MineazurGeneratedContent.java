@@ -78,7 +78,7 @@ public final class MineazurGeneratedContent {
     private static final ArmorMaterial COSTUME_ARMOR = new ArmorMaterial(
         15,
         new EnumMap<>(Map.of(ArmorType.BOOTS, 0, ArmorType.LEGGINGS, 0, ArmorType.CHESTPLATE, 0, ArmorType.HELMET, 0, ArmorType.BODY, 0)),
-        0, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, COSTUME_REPAIR,
+        1, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, COSTUME_REPAIR, // ench=1 (>0 requis : Enchantable interdit 0)
         ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "costume")));
 
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
