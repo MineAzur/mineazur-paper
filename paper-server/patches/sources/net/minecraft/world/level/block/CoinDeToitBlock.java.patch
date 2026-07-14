@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/CoinDeToitBlock.java
-@@ -1,0 +_,86 @@
+@@ -1,0 +_,101 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -13,6 +13,7 @@
 +import net.minecraft.world.level.block.state.BlockBehaviour;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.phys.shapes.CollisionContext;
 +import net.minecraft.world.phys.shapes.Shapes;
 +import net.minecraft.world.phys.shapes.VoxelShape;
@@ -76,10 +77,24 @@
 +
 +    @Override
 +    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        // 1.2.5 BlockCoinToit.onBlockPlacedBy est IDENTIQUE à BlockToit.postPlace (regard EST -> meta 0) : les
-+        // deux blocs partagent la convention, ce qui les rendait assortis par construction. Même règle donc :
-+        // FACING = direction du regard, sans getOpposite().
-+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
++        // Orientation par QUADRANT CLIQUÉ, pas par le yaw : on choisit les 4 coins depuis un même endroit, en
++        // visant le quart de bloc voulu — comme le haut/bas d'un escalier vanilla. Le yaw seul obligeait à
++        // tourner autour du bloc pour changer de coin.
++        //
++        // DIVERGENCE ASSUMÉE vs 1.2.5 (choix utilisateur, 2026-07-14) : BlockCoinToit.onBlockPlacedBy dérivait
++        // du yaw, comme BlockToit. On peut s'en écarter ici SANS trahir la résurrection, parce que ce bloc du
++        // Lot B n'a JAMAIS été déployé (client 2011 perdu) et n'existe sur AUCUNE map -> ni fidélité observable
++        // ni remap Phase 2 à préserver. Le `toit` (204), lui, est sur la map : il garde le yaw de 2011.
++        final Vec3 click = context.getClickLocation();
++        final BlockPos pos = context.getClickedPos();
++        final boolean east = click.x - pos.getX() >= 0.5D;
++        final boolean south = click.z - pos.getZ() >= 0.5D;
++        // Le coin plein occupe FACING ∪ FACING.getCounterClockWise() (cf. makeShape), d'où :
++        // NE -> EAST, SE -> SOUTH, SW -> WEST, NW -> NORTH.
++        final Direction facing = east
++                ? (south ? Direction.SOUTH : Direction.EAST)
++                : (south ? Direction.WEST : Direction.NORTH);
++        return this.defaultBlockState().setValue(FACING, facing);
 +    }
 +
 +    @Override
