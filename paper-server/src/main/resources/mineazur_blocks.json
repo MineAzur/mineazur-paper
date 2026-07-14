@@ -217,12 +217,13 @@
     },
     {
       "legacyId": 204,
+      "_comment": "light 0 (CORRIGE le 2026-07-14, valait 1 a tort) : SBTBlocks.java fait setLightValue(0.04F), et Block.a(float) = lightEmission = (int)(15.0F * f) -> (int)0.5999... = 0. Le toit n'a JAMAIS eclaire en 2011 : l'auteur visait sans doute une lueur, la TRONCATURE l'a annulee. Le 1 venait d'un arrondi de 0.6 au lieu d'une troncature.",
       "name": "toit",
       "archetype": "simple",
       "params": {
         "directional": true,
         "occlusion": true,
-        "light": 1,
+        "light": 0,
         "hardness": 2.0,
         "resistance": 15.0,
         "sound": "WOOD",
@@ -230,13 +231,14 @@
       }
     },
     {
+      "_comment": "light: DIVERGENCE ASSUMEE vs 2011 (choix utilisateur, 2026-07-14). SBTBlocks.java faisait setLightValue(0.994F) -> (int)(15.0F*0.994F) = 14 : le bois verni eclairait donc presque au maximum, et servait d'eclairage sans torches. Juge non voulu (une bourde de l'auteur d'origine plutot qu'une intention) -> ramene a 0, bloc de construction normal. Notre valeur 15 etait de toute facon fausse : arrondi la ou le NMS TRONQUE.",
       "legacyId": 205,
       "name": "bois_verni",
       "archetype": "simple",
       "params": {
         "directional": false,
         "occlusion": true,
-        "light": 15,
+        "light": 0,
         "hardness": 2.0,
         "resistance": 5.0,
         "sound": "WOOD",
@@ -305,14 +307,14 @@
       }
     },
     {
-      "_comment": "Escalier diagonal en 10 marches se retractant vers un coin (complement du bloc 'toit' 204) : les 4 orientations = les 4 coins. Params alignes sur 'toit' (light 1, WOOD, 2.0/15.0) pour que les deux s'assortissent visuellement - le fragment ne definissait aucun de ces params (Material.wood seul).",
+      "_comment": "Escalier diagonal en 10 marches se retractant vers un coin (complement du bloc 'toit' 204) : les 4 orientations = les 4 coins. Params alignes sur 'toit' (WOOD, 2.0/15.0) pour que les deux s'assortissent visuellement - le fragment ne definissait aucun de ces params (Material.wood seul). light: SUIT le toit, donc 0 (valait 1, aligne sur la valeur erronee du toit corrigee le 2026-07-14 : cf. son _comment).",
       "legacyId": 210,
       "name": "coin_de_toit",
       "archetype": "coin_toit",
       "params": {
         "directional": true,
         "occlusion": false,
-        "light": 1,
+        "light": 0,
         "hardness": 2.0,
         "resistance": 15.0,
         "sound": "WOOD",
