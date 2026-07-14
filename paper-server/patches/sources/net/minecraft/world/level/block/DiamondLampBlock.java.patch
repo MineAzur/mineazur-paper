@@ -1,0 +1,79 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/DiamondLampBlock.java
+@@ -1,0 +_,76 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.block.state.properties.BooleanProperty;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.Nullable;
++
++// MineAzur — Lot B de la MAJ Zehir 2012 : "diamond_lamp" (209), jamais déployée en 2011.
++// Géométrie transcrite de legacy/Maj de zehir/RenderBlocks.java#renderBlockDLamp (renderType 35).
++//
++// Le fragment dessinait DÉJÀ deux variantes — socle en bas (meta<=1) / socle en haut (meta>=2) — mais les
++// liait au yaw du joueur via un onBlockPlacedBy copié-collé de BlockChair : regarder au sud posait la lampe
++// au sol, regarder à l'ouest la suspendait. Aucun sens : l'intention est sol/plafond. On dérive donc HANGING
++// de la face cliquée (patron LanternBlock). Pas de canSurvive (le fragment n'en avait pas : la lampe peut
++// flotter), pas de WATERLOGGED (absent du legacy) -> 2 états de palette exactement.
++public class DiamondLampBlock extends Block {
++    public static final MapCodec<DiamondLampBlock> CODEC = simpleCodec(DiamondLampBlock::new);
++    public static final BooleanProperty HANGING = BlockStateProperties.HANGING;
++
++    // Corps commun aux deux variantes : cœur + les 4 pointes de diamant (identiques posée/suspendue).
++    private static final VoxelShape CORE = Shapes.or(
++        Shapes.box(0.3D, 0.3D, 0.3D, 0.7D, 0.7D, 0.7D),   // cœur
++        Shapes.box(0.4D, 0.4D, 0.2D, 0.6D, 0.6D, 0.4D),   // pointe nord
++        Shapes.box(0.4D, 0.4D, 0.6D, 0.6D, 0.6D, 0.8D),   // pointe sud
++        Shapes.box(0.2D, 0.4D, 0.4D, 0.3D, 0.6D, 0.6D),   // pointe ouest
++        Shapes.box(0.7D, 0.4D, 0.4D, 0.8D, 0.6D, 0.6D));  // pointe est
++
++    // meta<=1 : socle au sol, tige montante, ergot au sommet.
++    private static final VoxelShape SHAPE_STANDING = Shapes.or(CORE,
++        Shapes.box(0.35D, 0.0D, 0.35D, 0.65D, 0.1D, 0.65D),
++        Shapes.box(0.4D, 0.1D, 0.4D, 0.6D, 0.3D, 0.6D),
++        Shapes.box(0.4D, 0.7D, 0.4D, 0.6D, 0.8D, 0.6D));
++
++    // meta>=2 : socle au plafond, tige descendante, ergot sous le cœur. NB : ce n'est PAS le miroir exact de
++    // SHAPE_STANDING (le cœur et les pointes ne bougent pas) -> deux formes explicites, comme le fragment.
++    private static final VoxelShape SHAPE_HANGING = Shapes.or(CORE,
++        Shapes.box(0.35D, 0.9D, 0.35D, 0.65D, 1.0D, 0.65D),
++        Shapes.box(0.4D, 0.7D, 0.4D, 0.6D, 0.9D, 0.6D),
++        Shapes.box(0.4D, 0.2D, 0.4D, 0.6D, 0.3D, 0.6D));
++
++    public DiamondLampBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any().setValue(HANGING, false));
++    }
++
++    @Override
++    protected MapCodec<DiamondLampBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return state.getValue(HANGING) ? SHAPE_HANGING : SHAPE_STANDING;
++    }
++
++    @Override
++    public @Nullable BlockState getStateForPlacement(final BlockPlaceContext context) {
++        // Cliquer sous un plafond -> suspendue ; tout le reste -> posée.
++        return this.defaultBlockState().setValue(HANGING, context.getClickedFace() == Direction.DOWN);
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(HANGING);
++    }
++}

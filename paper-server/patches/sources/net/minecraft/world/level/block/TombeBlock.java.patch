@@ -1,0 +1,72 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/TombeBlock.java
+@@ -1,0 +_,69 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — Lot B de la MAJ Zehir 2012 : "tombe" (211), jamais déployée en 2011. Croix funéraire.
++// Géométrie transcrite de legacy/Maj de zehir/RenderBlocks.java#renderBlockTombe (renderType 36).
++//
++// Le poteau monte à 1.5 : la croix DÉPASSE dans la case du dessus, qui doit rester vide (déjà vrai en 2011).
++// Ce n'est pas une anomalie : FenceBlock déclare de même une collision de 24 (= 1.5 bloc).
++//
++// Le fragment ne distinguait que deux géométries (meta<=1 : bras sur l'axe Z ; meta>=2 : bras sur l'axe X).
++// On garde FACING (4 valeurs) par cohérence avec chair/toit/coin_de_toit et avec le flag "directional" du
++// générateur ; la croix étant symétrique à 180°, NORTH/SOUTH rendent identiquement, comme EAST/WEST — soit
++// exactement les deux géométries du fragment.
++public class TombeBlock extends HorizontalDirectionalBlock {
++    public static final MapCodec<TombeBlock> CODEC = simpleCodec(TombeBlock::new);
++
++    // Commun aux deux axes : dalle, socle, poteau central (jusqu'à 1.5).
++    private static final VoxelShape BASE = Shapes.or(
++        Shapes.box(0.0D, 0.0D, 0.0D, 1.0D, 0.1D, 1.0D),   // dalle
++        Shapes.box(0.2D, 0.1D, 0.2D, 0.8D, 0.3D, 0.8D),   // socle
++        Shapes.box(0.4D, 0.0D, 0.4D, 0.6D, 1.5D, 0.6D));  // poteau — dépasse le bloc (cf. FenceBlock)
++
++    // meta>=2 : bras sur l'axe X (est-ouest).
++    private static final VoxelShape SHAPE_X = Shapes.or(BASE,
++        Shapes.box(0.1D, 1.0D, 0.4D, 0.4D, 1.2D, 0.6D),
++        Shapes.box(0.6D, 1.0D, 0.4D, 0.9D, 1.2D, 0.6D)).optimize();
++
++    // meta<=1 : bras sur l'axe Z (nord-sud).
++    private static final VoxelShape SHAPE_Z = Shapes.or(BASE,
++        Shapes.box(0.4D, 1.0D, 0.1D, 0.6D, 1.2D, 0.4D),
++        Shapes.box(0.4D, 1.0D, 0.6D, 0.6D, 1.2D, 0.9D)).optimize();
++
++    public TombeBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH));
++    }
++
++    @Override
++    protected MapCodec<TombeBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        // Les bras sont perpendiculaires au regard : face nord/sud -> bras est-ouest.
++        return state.getValue(FACING).getAxis() == Direction.Axis.Z ? SHAPE_X : SHAPE_Z;
++    }
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(FACING);
++    }
++}

@@ -31,10 +31,13 @@ import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChairBlock;
+import net.minecraft.world.level.block.CoinDeToitBlock;
+import net.minecraft.world.level.block.DiamondLampBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.MineazurWoolStairsBlock;
 import net.minecraft.world.level.block.SangBlock;
+import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -166,6 +169,9 @@ public final class MineazurGeneratedContent {
             case "chair" -> new ChairBlock(props);
             case "plafond" -> new PlafondBlock(props);
             case "connected" -> new SangBlock(props);
+            case "lamp" -> new DiamondLampBlock(props);
+            case "coin_toit" -> new CoinDeToitBlock(props);
+            case "tombe" -> new TombeBlock(props);
             default -> throw new IllegalStateException("archétype non supporté : " + s.archetype());
         };
     }
@@ -278,6 +284,7 @@ public final class MineazurGeneratedContent {
             case "NETHER" -> MapColor.NETHER;
             case "BLUE" -> MapColor.COLOR_BLUE;
             case "RED" -> MapColor.COLOR_RED;
+            case "DIAMOND" -> MapColor.DIAMOND;
             default -> throw new IllegalStateException("mapColor non mappé : " + name);
         };
     }

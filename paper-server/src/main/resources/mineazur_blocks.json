@@ -287,6 +287,52 @@
         "sound": "STONE",
         "mapColor": "RED"
       }
+    },
+    {
+      "_comment": "Lot B de la MAJ Zehir 2012 (docs/reference/ZEHIR_2012_BACKLOG.md) : contenu concu en dec. 2012 mais JAMAIS deploye (client mineazur.jar perdu). Geometrie reconstituee depuis les fragments 'legacy/Maj de zehir/RenderBlocks.java' (renderType 34=coin_de_toit, 35=diamond_lamp, 36=tombe). Ajoutes EN FIN (invariant I1). legacyId 209-211 = ordre d'enregistrement pur : blocs NOUVEAUX, jamais sur l'ancienne map, aucun remap Phase 2. NB : 207/208 pris par les cubes CTF, d'ou 209 et non 207 comme le prevoyait le backlog.",
+      "legacyId": 209,
+      "name": "diamond_lamp",
+      "archetype": "lamp",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 15,
+        "hardness": 0.3,
+        "resistance": 0.3,
+        "sound": "GLASS",
+        "mapColor": "DIAMOND",
+        "states": "hanging:false|true (posee au sol / suspendue au plafond, patron LanternBlock). Le fragment 2012 dessinait DEJA ces 2 variantes (meta<=1 socle en bas, meta>=2 socle en haut) mais les liait au yaw du joueur (copier-coller de BlockChair) : bug corrige, hanging derive desormais de la face cliquee. NB : archetype 'lamp' et NON 'simple' comme le supposait le backlog - le fragment montre un luminaire non-cube (socle+tige+coeur+4 pointes), pas un cube plein."
+      }
+    },
+    {
+      "_comment": "Escalier diagonal en 10 marches se retractant vers un coin (complement du bloc 'toit' 204) : les 4 orientations = les 4 coins. Params alignes sur 'toit' (light 1, WOOD, 2.0/15.0) pour que les deux s'assortissent visuellement - le fragment ne definissait aucun de ces params (Material.wood seul).",
+      "legacyId": 210,
+      "name": "coin_de_toit",
+      "archetype": "coin_toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 1,
+        "hardness": 2.0,
+        "resistance": 15.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
+    },
+    {
+      "_comment": "Croix funeraire : dalle + socle + poteau montant a 1.5 bloc (DEPASSE dans la case du dessus - precedent vanilla : FenceBlock declare une collision de 24) + 2 bras a mi-hauteur. Le fragment declarait Material.glass, mais c'est un copier-coller de BlockDLamp (meme fichier, 3 jours d'ecart) : une pierre tombale en verre n'a aucun sens -> STONE. Croix symetrique a 180deg : NORTH/SOUTH et EAST/WEST rendent identiquement (2 geometries reelles, comme le fragment qui ne distinguait que meta<=1 / meta>=2).",
+      "legacyId": 211,
+      "name": "tombe",
+      "archetype": "tombe",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 15.0,
+        "sound": "STONE",
+        "mapColor": "STONE"
+      }
     }
   ]
 }
