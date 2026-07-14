@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/MineazurHorizontalBlock.java
-@@ -1,0 +_,34 @@
+@@ -1,0 +_,38 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -27,7 +27,11 @@
 +
 +    @Override
 +    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
++        // 1.2.5 BlockToit.postPlace : regard EST -> meta 0, et meta 0 = « droite est » (RenderBlocks), soit une
++        // pente montant vers l'EST. Idem sur les 4 : la pente monte DANS la direction du regard (elle s'éloigne
++        // du joueur, sa surface inclinée lui fait face). FACING = direction de la pente (= dirFromLegacy du
++        // replay) -> pas de getOpposite() ici, contrairement à chair (dont le siège, lui, fait face au joueur).
++        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
 +    }
 +
 +    @Override

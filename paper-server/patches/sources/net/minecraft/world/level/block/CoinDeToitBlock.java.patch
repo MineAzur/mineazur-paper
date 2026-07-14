@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/CoinDeToitBlock.java
-@@ -1,0 +_,81 @@
+@@ -1,0 +_,86 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -38,9 +38,12 @@
 +    }
 +
 +    private static VoxelShape makeShape(final Direction facing) {
-+        // Le coin plein occupe l'angle formé par facing et sa direction horaire.
-+        final boolean east = facing == Direction.EAST || facing.getClockWise() == Direction.EAST;
-+        final boolean south = facing == Direction.SOUTH || facing.getClockWise() == Direction.SOUTH;
++        // Le coin plein occupe l'angle formé par facing et sa direction ANTI-horaire : meta legacy 0 = coin
++        // (x=1,z=0) = NORD-EST, et meta 0 = FACING EAST (BlockCoinToit.onBlockPlacedBy, identique à BlockToit) ;
++        // or EAST ∪ EAST.getCounterClockWise()=NORTH = nord-est. (L'ancien getClockWise() venait de l'hypothèse
++        // « meta 0 = FACING NORTH » de gen_geometry.py, fausse : elle décalait le coin de 90°.)
++        final boolean east = facing == Direction.EAST || facing.getCounterClockWise() == Direction.EAST;
++        final boolean south = facing == Direction.SOUTH || facing.getCounterClockWise() == Direction.SOUTH;
 +
 +        VoxelShape shape = Shapes.box(0.0D, 0.0D, 0.0D, 1.0D, 0.1D, 1.0D); // dalle de base
 +        for (int k = 1; k <= 9; k++) {
@@ -73,8 +76,10 @@
 +
 +    @Override
 +    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        // Même convention que chair/toit : le bloc fait face au joueur.
-+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
++        // 1.2.5 BlockCoinToit.onBlockPlacedBy est IDENTIQUE à BlockToit.postPlace (regard EST -> meta 0) : les
++        // deux blocs partagent la convention, ce qui les rendait assortis par construction. Même règle donc :
++        // FACING = direction du regard, sans getOpposite().
++        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
 +    }
 +
 +    @Override
