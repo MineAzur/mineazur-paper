@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangMurBlock.java
-@@ -1,0 +_,177 @@
+@@ -1,0 +_,185 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -93,9 +93,17 @@
 +    }
 +
 +    // Voisinage local -> bits n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128, dans le repère du mur (IDENTIQUE client).
++    //
++    // ⚠️ right = getCounterClockWise(), PAS getClockWise(). La DROITE VISUELLE est celle d'un observateur qui FAIT
++    // FACE au décal : facing=SOUTH => on le regarde en regardant vers le NORD, et vers le nord l'EST est à droite.
++    // Or SOUTH.getClockWise() = WEST (Direction.java:248) — l'inverse. Le bug d'origine (P5, corrigé le 2026-07-15) :
++    // le bit `e` testait le bloc de GAUCHE, donc le bord opaque se dessinait du côté OPPOSÉ au voisin, et deux
++    // décals adjacents s'estompaient chacun face à l'autre => FENTE au joint (diagnostic par F3+I : shape=35 =
++    // haut+bas+gauche alors que le voisin était à l'est). N'inverse RIEN d'autre : même nombre d'états, palette
++    // inchangée, garde toujours verte.
 +    private static int rawVoisins(final BlockGetter level, final BlockPos pos, final Direction facing) {
-+        final Direction right = facing.getClockWise();
-+        final Direction left = facing.getCounterClockWise();
++        final Direction right = facing.getCounterClockWise();
++        final Direction left = facing.getClockWise();
 +        int raw = 0;
 +        if (murConnecte(level, pos.above(), facing)) raw |= 1;
 +        if (basConnecte(level, pos, facing)) raw |= 2;
