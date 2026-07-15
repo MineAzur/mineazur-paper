@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,149 @@
+@@ -1,0 +_,157 @@
 +package net.minecraft.world.level.block;
 +
 +import java.util.Arrays;
@@ -144,9 +144,17 @@
 +        }
 +    }
 +
-+    // Curseur de vitesse : 1 chance sur N à chaque random tick reçu SOUS la précipitation. Un bloc est
-+    // random-tické ~1 fois/68 s (randomTickSpeed 3) -> ~4-5 min de pluie pour les 4 crans d'age.
++    // Curseur de vitesse : 1 chance sur N à chaque random tick reçu SOUS la précipitation.
++    //
++    // CALCUL (à refaire si on y touche — le premier jet s'était trompé) : un bloc reçoit un random tick toutes
++    // les ~68 s (randomTickSpeed 3 tirages par section de 4096 blocs, 20 fois/s => 3*20/4096 ≈ 1/68 s), et il
++    // faut en moyenne N tirages par cran. Durée totale ≈ 4 crans × N × 68 s.
++    //   N=4 -> ~18 min : CASSÉ. Une averse dure 10-20 min => une mare survivait souvent à l'averse entière.
++    //   N=1 -> ~4,5 min : un cran par tick reçu. C'est le PLANCHER du random tick, et ça tient dans une averse.
++    // Pour descendre sous 4,5 min il faudrait abandonner randomTick pour scheduleTick (durée exacte, mais il
++    // faut reprogrammer le tick à la pose et au chargement de chunk) — écarté, cf. SANG_PHASE5.md §3.
++    //
 +    // Chaque bloc tire son PROPRE dé : la mare se délave par plaques irrégulières, pas en fondu d'ensemble
 +    // (un fondu uniforme exigerait un flood fill de toute la mare à chaque tick — refusé, cf. SANG_PHASE5.md).
-+    private static final int DELAVAGE_CHANCE = 4;
++    private static final int DELAVAGE_CHANCE = 1;
 +}
