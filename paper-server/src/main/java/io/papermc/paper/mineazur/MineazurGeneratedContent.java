@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.EnumMap;
 import java.util.Map;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -25,6 +26,7 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ShurikenItem;
+import net.minecraft.world.item.StandingAndWallBlockItem;
 import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
@@ -36,7 +38,10 @@ import net.minecraft.world.level.block.DiamondLampBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
 import net.minecraft.world.level.block.MineazurWoolStairsBlock;
-import net.minecraft.world.level.block.SangBlock;
+import net.minecraft.world.level.block.SangMurBlock;
+import net.minecraft.world.level.block.SangMurPerissableBlock;
+import net.minecraft.world.level.block.SangSolBlock;
+import net.minecraft.world.level.block.SangSolPerissableBlock;
 import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -85,7 +90,8 @@ public final class MineazurGeneratedContent {
         ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "costume")));
 
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
-                        float hardness, float resistance, String sound, String mapColor, String base) {}
+                        float hardness, float resistance, String sound, String mapColor, String base,
+                        boolean perishable, String wallVariant, boolean noItem) {}
 
     private MineazurGeneratedContent() {
     }
@@ -120,7 +126,10 @@ public final class MineazurGeneratedContent {
                         asFloat(p, "resistance", 1.0F),
                         asString(p, "sound", "STONE"),
                         asString(p, "mapColor", "STONE"),
-                        asString(p, "base", null)
+                        asString(p, "base", null),
+                        p.has("perishable") && p.get("perishable").getAsBoolean(),
+                        asString(p, "wallVariant", null),
+                        p.has("noItem") && p.get("noItem").getAsBoolean()
                     ));
                 }
             } catch (final Exception e) {
@@ -152,9 +161,14 @@ public final class MineazurGeneratedContent {
                 if (!s.occlusion()) {
                     props.noOcclusion();
                 }
-                if ("connected".equals(s.archetype())) {
-                    // Bloc plat non-solide (peint au sol) : traversable + détruit par un piston (comme la redstone).
+                if (s.archetype().startsWith("connected")) {
+                    // Décal plat non-solide (peint au sol ou sur une paroi) : traversable + détruit par un piston
+                    // (comme la redstone). « Éternel » ne concerne QUE le délavage, pas les pistons.
                     props.noCollision().pushReaction(PushReaction.DESTROY);
+                    if (s.perishable()) {
+                        // Le délavage passe par randomTick : seuls les périssables en ont besoin (SangBlock.delaverTick).
+                        props.randomTicks();
+                    }
                 }
                 props.setId(key);
                 block = create(s, props);
@@ -168,7 +182,10 @@ public final class MineazurGeneratedContent {
             case "simple" -> s.directional() ? new MineazurHorizontalBlock(props) : new Block(props);
             case "chair" -> new ChairBlock(props);
             case "plafond" -> new PlafondBlock(props);
-            case "connected" -> new SangBlock(props);
+            // Famille sang : le périssable est une SOUS-CLASSE (il porte AGE en plus), pas un booléen — cf.
+            // l'en-tête de SangBlock, createBlockStateDefinition tourne avant l'init des champs d'instance.
+            case "connected" -> s.perishable() ? new SangSolPerissableBlock(props) : new SangSolBlock(props);
+            case "connected_wall" -> s.perishable() ? new SangMurPerissableBlock(props) : new SangMurBlock(props);
             case "lamp" -> new DiamondLampBlock(props);
             case "coin_toit" -> new CoinDeToitBlock(props);
             case "tombe" -> new TombeBlock(props);
@@ -204,11 +221,29 @@ public final class MineazurGeneratedContent {
     public static void registerItems() {
         // 1) BlockItems des blocs générés (ordre des blocs).
         for (final Spec s : specs()) {
+            // Les décals muraux n'ont PAS d'item propre : ils sont posés par l'item du bloc de sol (ci-dessous).
+            // ⚠️ Ce `continue` saute un ID d'item, et les IDs d'items CIRCULENT sur le réseau (contrairement aux
+            // blocs, dont seuls les IDs d'ÉTAT transitent) : le skip doit être MIROIR STRICT côté client, sinon
+            // tous les items suivants sont décalés.
+            if (s.noItem()) {
+                continue;
+            }
             final Identifier id = Identifier.fromNamespaceAndPath(NS, s.name());
             final ResourceKey<Item> key = ResourceKey.create(Registries.ITEM, id);
             final Block block = BuiltInRegistries.BLOCK.getValue(id);
             final Item.Properties props = new Item.Properties().useBlockDescriptionPrefix().setId(key);
-            final BlockItem item = new BlockItem(block, props);
+            final BlockItem item;
+            if (s.wallVariant() != null) {
+                // Pattern torch/wall_torch : un seul item qui pose le décal au sol ou sur la paroi selon la face
+                // cliquée (Items.java:392). Direction.DOWN = le bloc « debout » s'attache vers le bas.
+                final Block wall = BuiltInRegistries.BLOCK.getValue(Identifier.fromNamespaceAndPath(NS, s.wallVariant()));
+                item = new StandingAndWallBlockItem(block, wall, Direction.DOWN, props);
+            } else {
+                item = new BlockItem(block, props);
+            }
+            // registerBlocks() mappe AUSSI le wallBlock vers cet item dans BY_BLOCK — ce qui sert au pick-block
+            // (Item.byBlock), PAS au drop : le drop reste décidé par la loot table du bloc mural, qui rend donc
+            // explicitement l'item de sol (data/mineazur/loot_table/blocks/sang_mur.json).
             item.registerBlocks(Item.BY_BLOCK, item);
             Registry.register(BuiltInRegistries.ITEM, key, item);
         }

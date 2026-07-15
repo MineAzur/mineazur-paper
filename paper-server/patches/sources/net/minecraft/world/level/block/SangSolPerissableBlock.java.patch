@@ -1,0 +1,42 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/SangSolPerissableBlock.java
+@@ -1,0 +_,39 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++
++// MineAzur — mineazur:sang (sang au sol ORDINAIRE, celui qui se craft). SangSolBlock + délavage.
++//
++// Ne diffère de son parent (le sang éternel) que par la propriété AGE et le randomTick. L'ajout de AGE DOIT
++// passer par cette sous-classe : createBlockStateDefinition est appelé depuis le constructeur de Block, où un
++// champ d'instance `perishable` vaudrait encore false (cf. l'en-tête de SangBlock).
++public class SangSolPerissableBlock extends SangSolBlock {
++    public static final MapCodec<SangSolPerissableBlock> CODEC = simpleCodec(SangSolPerissableBlock::new);
++
++    public SangSolPerissableBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.defaultBlockState().setValue(AGE, 0));
++    }
++
++    @Override
++    protected MapCodec<? extends SangSolBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        super.createBlockStateDefinition(builder);
++        builder.add(AGE);
++    }
++
++    @Override
++    protected void randomTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
++        delaverTick(state, level, pos, random);
++    }
++}

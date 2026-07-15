@@ -1,0 +1,180 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/SangMurBlock.java
+@@ -1,0 +_,177 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import java.util.Map;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.block.state.properties.EnumProperty;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.Nullable;
++
++// MineAzur — sang PEINT SUR UNE FACE VERTICALE (mineazur:sang_mur_eternel ; périssable = SangMurPerissableBlock).
++//
++// Le même blob 47 que le sol, mais dans le PLAN DU MUR. Le repère local de la signature est réorienté :
++//   n = haut (UP) · s = bas (DOWN) · e = facing.getClockWise() · w = facing.getCounterClockWise()
++// C'est ce qui permet de réutiliser TEL QUEL le jeu de 47 tuiles du sol (le modèle se contente de coller le quad
++// contre la paroi avec la bonne rotation) — cf. gen_sang_textures.py.
++//
++// FACING suit la convention vanilla de WallTorchBlock : c'est la NORMALE du décal (il « regarde » en s'éloignant
++// du mur), et le support est en pos.relative(FACING.getOpposite()).
++//
++// Pas d'item propre : posé par l'item du bloc de sol correspondant via StandingAndWallBlockItem (pattern
++// torch/wall_torch). Cf. MineazurGeneratedContent + le champ noItem de mineazur_blocks.json.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.SangMurBlock (invariant I3).
++public class SangMurBlock extends SangBlock {
++    public static final MapCodec<SangMurBlock> CODEC = simpleCodec(SangMurBlock::new);
++
++    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
++
++    // Décal de 0.5 px plaqué contre la paroi, du côté d'où vient le support.
++    private static final Map<Direction, VoxelShape> SHAPES = Map.of(
++        Direction.NORTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
++        Direction.SOUTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
++        Direction.EAST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
++        Direction.WEST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0)
++    );
++
++    public SangMurBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any()
++            .setValue(SHAPE, 0)
++            .setValue(FACING, Direction.NORTH));
++    }
++
++    @Override
++    protected MapCodec<? extends SangMurBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPES.get(state.getValue(FACING));
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(SHAPE, FACING);
++    }
++
++    // --- Connexion ---------------------------------------------------------------------------------------------
++
++    // Un voisin ne compte que s'il peint LE MÊME plan (même facing) : deux parois perpendiculaires ne doivent pas
++    // se raccorder, leurs décals ne sont pas coplanaires.
++    private static boolean murConnecte(final BlockGetter level, final BlockPos pos, final Direction facing) {
++        final BlockState state = level.getBlockState(pos);
++        return isSangMur(state) && state.getValue(FACING) == facing;
++    }
++
++    // Bord BAS : soit un autre décal mural, soit — et c'est la soudure avec le sol — une flaque juste en dessous
++    // qui COULE vers ce mur. Une flaque en pos.below() n'est pas géométriquement contiguë à notre case (il y a
++    // une hauteur de bloc d'écart) ; c'est sa coulure (climb) qui comble le segment. Donc on ne se raccorde que
++    // si elle grimpe effectivement vers NOTRE paroi, pas dès qu'il y a du sang en dessous.
++    private static boolean basConnecte(final BlockGetter level, final BlockPos pos, final Direction facing) {
++        final BlockState below = level.getBlockState(pos.below());
++        if (isSangMur(below) && below.getValue(FACING) == facing) {
++            return true;
++        }
++        return isSangSol(below) && below.getValue(SangSolBlock.climbProperty(facing.getOpposite()));
++    }
++
++    // Voisinage local -> bits n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128, dans le repère du mur (IDENTIQUE client).
++    private static int rawVoisins(final BlockGetter level, final BlockPos pos, final Direction facing) {
++        final Direction right = facing.getClockWise();
++        final Direction left = facing.getCounterClockWise();
++        int raw = 0;
++        if (murConnecte(level, pos.above(), facing)) raw |= 1;
++        if (basConnecte(level, pos, facing)) raw |= 2;
++        if (murConnecte(level, pos.relative(right), facing)) raw |= 4;
++        if (murConnecte(level, pos.relative(left), facing)) raw |= 8;
++        if (murConnecte(level, pos.above().relative(right), facing)) raw |= 16;
++        if (murConnecte(level, pos.above().relative(left), facing)) raw |= 32;
++        if (murConnecte(level, pos.below().relative(right), facing)) raw |= 64;
++        if (murConnecte(level, pos.below().relative(left), facing)) raw |= 128;
++        return raw;
++    }
++
++    @Override
++    protected BlockState etatConnecte(final BlockGetter level, final BlockPos pos, final BlockState state) {
++        return state.setValue(SHAPE, shapeFromRaw(rawVoisins(level, pos, state.getValue(FACING))));
++    }
++
++    // --- Cycle de vie ------------------------------------------------------------------------------------------
++
++    @Override
++    public @Nullable BlockState getStateForPlacement(final BlockPlaceContext context) {
++        BlockState state = this.defaultBlockState();
++        final LevelReader level = context.getLevel();
++        final BlockPos pos = context.getClickedPos();
++
++        for (final Direction direction : context.getNearestLookingDirections()) {
++            if (direction.getAxis().isHorizontal()) {
++                state = state.setValue(FACING, direction.getOpposite());
++                if (state.canSurvive(level, pos)) {
++                    return this.etatConnecte(level, pos, state);
++                }
++            }
++        }
++
++        return null;
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        if (!state.canSurvive(level, pos)) {
++            return Blocks.AIR.defaultBlockState();
++        }
++        return this.etatConnecte(level, pos, state);
++    }
++
++    // updateShape ne couvre que les 6 faces : il manque les 4 DIAGONALES du plan mural (coins du blob). La flaque
++    // d'en dessous, elle, est bien une face (below) — mais elle doit AUSSI être re-résolue, car notre présence
++    // change sa coulure (cf. SangSolBlock.climbVers, cas « jointure murale »).
++    @Override
++    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
++                                                 final int updateFlags, final int updateLimit) {
++        if (updateLimit <= 0) {
++            return;
++        }
++        final Direction facing = state.getValue(FACING);
++        final Direction right = facing.getClockWise();
++        final Direction left = facing.getCounterClockWise();
++        for (final BlockPos dp : new BlockPos[]{
++            pos.above().relative(right), pos.above().relative(left),
++            pos.below().relative(right), pos.below().relative(left),
++        }) {
++            reresoudre(level, dp, updateFlags, updateLimit);
++        }
++        reresoudre(level, pos.below(), updateFlags, updateLimit);
++    }
++
++    @Override
++    public boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
++        final Direction facing = state.getValue(FACING);
++        final BlockPos supportPos = pos.relative(facing.getOpposite());
++        return level.getBlockState(supportPos).isFaceSturdy(level, supportPos, facing);
++    }
++}

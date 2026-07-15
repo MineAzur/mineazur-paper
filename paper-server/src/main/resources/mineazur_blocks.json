@@ -246,7 +246,7 @@
       }
     },
     {
-      "_comment": "Premier bloc NOUVEAU (pas une resurrection) et premier bloc CONNECTE/dynamique. Ajoute EN FIN de liste (les 3 nouveaux etats de palette s'ajoutent apres les 23 blocs deja alignes, invariant I1). legacyId 206 = libre, jamais present sur l'ancienne map (aucun remap Phase 2). archetype 'connected' = multi-etats: la classe SangBlock fixe l'ordre de l'enum de forme (I3). 'states' = documentation de l'ordre canonique P1 (les futurs etats P2/P3 s'ajoutent EN FIN).",
+      "_comment": "Premier bloc NOUVEAU (pas une resurrection) et premier bloc CONNECTE/dynamique. Ajoute EN FIN de liste (les 3 nouveaux etats de palette s'ajoutent apres les 23 blocs deja alignes, invariant I1). legacyId 206 = libre, jamais present sur l'ancienne map (aucun remap Phase 2). archetype 'connected' = multi-etats: la classe SangBlock fixe l'ordre de l'enum de forme (I3). 'states' = documentation de l'ordre canonique P1 (les futurs etats P2/P3 s'ajoutent EN FIN). PHASE 5 : gagne climb (coulure verticale facon redstone) + age (delavage par la pluie) -> 47*16*4 = 3008 etats. 'wallVariant' = bloc pose sur les faces verticales par le meme item (StandingAndWallBlockItem, pattern torche).",
       "legacyId": 206,
       "name": "sang",
       "archetype": "connected",
@@ -258,7 +258,9 @@
         "resistance": 0.0,
         "sound": "WOOL",
         "mapColor": "NETHER",
-        "states": "shape:0..46 (blob conscient des 8 voisins ; index = table signature->index, cf. gen_sang_textures.py + SangBlock)"
+        "perishable": true,
+        "wallVariant": "sang_mur",
+        "states": "shape:0..46 (blob conscient des 8 voisins ; index = table signature->index, cf. gen_sang_textures.py + SangBlock) x climb:0..15 (coulure par cote NSEW) x age:0..3 (delavage)"
       }
     },
     {
@@ -334,6 +336,61 @@
         "resistance": 15.0,
         "sound": "STONE",
         "mapColor": "STONE"
+      }
+    },
+    {
+      "_comment": "PHASE 5 - famille SANG (212-214), ajoutee EN FIN (invariant I1 : aucun etat existant n'est decale). Sang peint sur une face VERTICALE : pas d'item propre ('noItem'), il est pose par l'item 'sang' via StandingAndWallBlockItem (pattern torche / wall_torch). Blob 47 dans le PLAN DU MUR x facing:4 x age:4 = 752 etats. ATTENTION I3 : 'noItem' saute un item -> les IDs d'items circulent sur le reseau, le skip doit etre MIROIR STRICT cote client.",
+      "legacyId": 212,
+      "name": "sang_mur",
+      "archetype": "connected_wall",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 0.0,
+        "resistance": 0.0,
+        "sound": "WOOL",
+        "mapColor": "NETHER",
+        "perishable": true,
+        "noItem": true,
+        "states": "shape:0..46 (blob dans le plan du mur) x facing:4 (face verticale portante) x age:0..3 (delavage)"
+      }
+    },
+    {
+      "_comment": "Sang ETERNEL : identique au sang au rendu (meme famille de raccord, cf. resolve()), mais IMMUNISE au delavage -> ne porte PAS 'age' (47*16 = 752 etats). Outil de MAP-MAKING : aucune recette dans data/mineazur/recipe/ ('craftable': false) => obtenable au /give uniquement. Bloc SEPARE plutot qu'un booleen 'eternal' sur le sang : un booleen doublerait les etats (3008 -> 6016) dont la moitie morts (age n'a aucun sens si eternel).",
+      "legacyId": 213,
+      "name": "sang_eternel",
+      "archetype": "connected",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 0.0,
+        "resistance": 0.0,
+        "sound": "WOOL",
+        "mapColor": "NETHER",
+        "perishable": false,
+        "craftable": false,
+        "wallVariant": "sang_mur_eternel",
+        "states": "shape:0..46 x climb:0..15 (PAS d'age : eternel)"
+      }
+    },
+    {
+      "_comment": "Pendant mural du sang eternel (une scene de crime sur un mur ne doit pas s'effacer a la premiere averse). Pas d'item propre : pose par l'item 'sang_eternel'. 47*4 = 188 etats (pas d'age).",
+      "legacyId": 214,
+      "name": "sang_mur_eternel",
+      "archetype": "connected_wall",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 0.0,
+        "resistance": 0.0,
+        "sound": "WOOL",
+        "mapColor": "NETHER",
+        "perishable": false,
+        "noItem": true,
+        "states": "shape:0..46 x facing:4 (PAS d'age : eternel)"
       }
     }
   ]

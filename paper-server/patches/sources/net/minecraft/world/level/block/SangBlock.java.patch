@@ -1,42 +1,55 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/SangBlock.java
-@@ -1,0 +_,148 @@
+@@ -1,0 +_,149 @@
 +package net.minecraft.world.level.block;
 +
-+import com.mojang.serialization.MapCodec;
 +import java.util.Arrays;
 +import net.minecraft.core.BlockPos;
-+import net.minecraft.core.Direction;
++import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.util.RandomSource;
-+import net.minecraft.world.item.context.BlockPlaceContext;
 +import net.minecraft.world.level.BlockGetter;
 +import net.minecraft.world.level.LevelAccessor;
-+import net.minecraft.world.level.LevelReader;
-+import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.biome.Biome;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
 +import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.level.block.state.StateDefinition;
 +import net.minecraft.world.level.block.state.properties.IntegerProperty;
-+import net.minecraft.world.phys.shapes.CollisionContext;
-+import net.minecraft.world.phys.shapes.VoxelShape;
 +
-+// MineAzur — bloc CUSTOM "sang" (mineazur:sang). Décal de sang au sol, CONNECTÉ.
++// MineAzur — base commune de la FAMILLE "sang" (Phase 5). Quatre blocs concrets en héritent :
 +//
-+// Rendu « blob » conscient des 8 voisins (47 formes). Chaque bloc calcule une SIGNATURE de son voisinage : côtés
-+// connectés (raccord opaque net) + coins arrondis (un coin dont les 2 côtés sont connectés mais la diagonale
-+// vide est arrondi → adoucit le « carré plein »). La propriété est un entier `shape` 0..46 ; la table
-+// signature→index est construite en itérant les 256 combinaisons (ordre de 1ʳᵉ vue).
++//   SangBlock (abstrait)
++//   ├── SangSolBlock              mineazur:sang_eternel      — décal au sol,  shape × climb            (752 états)
++//   │   └── SangSolPerissableBlock  mineazur:sang            — + age (délavage)                       (3008 états)
++//   └── SangMurBlock              mineazur:sang_mur_eternel  — décal sur face verticale, shape × facing (188 états)
++//       └── SangMurPerissableBlock  mineazur:sang_mur        — + age (délavage)                        (752 états)
 +//
-+// ⚠️ MIROIR STRICT de com.mineazur.client.SangBlock ET de client-mod/tools/gen_sang_textures.py : la fonction
-+// sig(), l'ordre d'itération 0..255 et la propriété `shape` (0..46) DOIVENT être identiques, sinon les stateIds
-+// de palette / les textures divergent (I3). shape=index -> texture/modèle mineazur:block/sang_<index>.
++// ⚠️ La hiérarchie N'EST PAS un caprice : Block.<init> appelle createBlockStateDefinition() AVANT que les champs
++// de la sous-classe soient initialisés. Un `private final boolean perishable` y vaudrait encore false, donc
++// l'ajout conditionnel de AGE ne peut PAS dépendre d'un champ d'instance — seul un override de sous-classe
++// (résolu virtuellement dès le constructeur parent) fonctionne. Ne pas « simplifier » en un booléen.
 +//
-+// Le shape dépend des DIAGONALES → updateShape (faces) ne suffit pas : on propage aussi aux 4 diagonaux
-+// (updateIndirectNeighbourShapes). Plat, non-solide (noCollision), traversable.
-+public class SangBlock extends Block {
-+    public static final MapCodec<SangBlock> CODEC = simpleCodec(SangBlock::new);
++// ⚠️ MIROIR STRICT de com.mineazur.client.Sang*Block ET de client-mod/tools/gen_sang_textures.py : sig(),
++// l'ordre d'itération 0..255 et l'ENSEMBLE des propriétés (mêmes noms, mêmes plages) doivent être identiques,
++// sinon les IDs d'états de palette divergent entre serveur et client (invariant I3, cf. le piège central).
++// En revanche l'ordre de DÉCLARATION dans createBlockStateDefinition est indifférent : StateDefinition range les
++// propriétés dans une ImmutableSortedMap par NOM (StateDefinition.java:46) et bâtit le produit cartésien sur
++// cette map triée — c'est l'ordre ALPHABÉTIQUE des noms qui fixe l'ordre des états, pas l'ordre du builder.
++// Ce qui reste critique, c'est l'ordre d'enregistrement des BLOCS (mineazur_blocks.json), pas celui-ci.
++//
++// Rendu « blob » conscient des 8 voisins (47 formes) : chaque bloc calcule une SIGNATURE de son voisinage —
++// côtés connectés (raccord opaque net) + coins arrondis (un coin dont les 2 côtés sont connectés mais la
++// diagonale vide est arrondi → adoucit le « carré plein »).
++public abstract class SangBlock extends Block {
++    // Forme du blob (0..46). Le mapping index -> texture est dans gen_sang_textures.py.
++    public static final IntegerProperty SHAPE = IntegerProperty.create("shape", 0, 46);
++
++    // Délavage par les précipitations. Déclarée ICI (constante partagée) mais ajoutée au StateDefinition
++    // UNIQUEMENT par les sous-classes périssables : les blocs éternels ne la portent pas du tout, sinon 3/4 de
++    // leurs états seraient morts (age n'a aucun sens quand rien ne délave).
++    public static final IntegerProperty AGE = IntegerProperty.create("age", 0, 3);
 +
 +    // Signature 8 bits : n,s,e,w (côtés connectés) + coin rempli NW/NE/SW/SE (2 côtés + diagonale). <=47 valeurs.
++    // Repère LOCAL au plan du bloc : au sol n/s/e/w = nord/sud/est/ouest ; sur un mur, cf. SangMurBlock (n=haut,
++    // s=bas, e/w = droite/gauche face au mur) — c'est ce qui permet aux DEUX de réutiliser le même jeu de tuiles.
 +    private static int sig(final int raw) {
 +        final boolean n = (raw & 1) != 0, s = (raw & 2) != 0, e = (raw & 4) != 0, w = (raw & 8) != 0;
 +        final boolean ne = (raw & 16) != 0, nw = (raw & 32) != 0, se = (raw & 64) != 0, sw = (raw & 128) != 0;
@@ -62,90 +75,78 @@
 +        SHAPE_COUNT = next; // 47 (jeu blob standard) — voir gen_sang_textures.py
 +    }
 +
-+    public static final IntegerProperty SHAPE = IntegerProperty.create("shape", 0, 46);
-+
-+    // Contour de sélection plat (0.5 px). La COLLISION est vide (noCollision, propriétés).
-+    private static final VoxelShape SHAPE_BOX = Block.column(16.0, 0.0, 0.5);
-+
-+    public SangBlock(final BlockBehaviour.Properties properties) {
-+        super(properties);
-+        this.registerDefaultState(this.stateDefinition.any().setValue(SHAPE, 0));
-+    }
-+
-+    @Override
-+    protected MapCodec<SangBlock> codec() {
-+        return CODEC;
-+    }
-+
-+    @Override
-+    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
-+        return SHAPE_BOX;
-+    }
-+
-+    // Index de forme depuis les 8 voisins. Bits : n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128 (IDENTIQUE Python).
-+    private static int resolve(final BlockGetter level, final BlockPos pos, final Block self) {
-+        int raw = 0;
-+        if (level.getBlockState(pos.north()).is(self)) raw |= 1;
-+        if (level.getBlockState(pos.south()).is(self)) raw |= 2;
-+        if (level.getBlockState(pos.east()).is(self)) raw |= 4;
-+        if (level.getBlockState(pos.west()).is(self)) raw |= 8;
-+        if (level.getBlockState(pos.north().east()).is(self)) raw |= 16;
-+        if (level.getBlockState(pos.north().west()).is(self)) raw |= 32;
-+        if (level.getBlockState(pos.south().east()).is(self)) raw |= 64;
-+        if (level.getBlockState(pos.south().west()).is(self)) raw |= 128;
++    // Bits du voisinage local (n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128) -> index de forme. IDENTIQUE Python.
++    protected static int shapeFromRaw(final int raw) {
 +        return SHAPE_BY_SIG[sig(raw)];
 +    }
 +
-+    @Override
-+    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        return this.defaultBlockState().setValue(SHAPE, resolve(context.getLevel(), context.getClickedPos(), this));
++    protected SangBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
 +    }
 +
-+    @Override
-+    protected BlockState updateShape(
-+        final BlockState state,
-+        final LevelReader level,
-+        final ScheduledTickAccess ticks,
-+        final BlockPos pos,
-+        final Direction directionToNeighbour,
-+        final BlockPos neighbourPos,
-+        final BlockState neighbourState,
-+        final RandomSource random
-+    ) {
-+        if (!state.canSurvive(level, pos)) {
-+            return Blocks.AIR.defaultBlockState();
-+        }
-+        return state.setValue(SHAPE, resolve(level, pos, this));
++    // --- Famille -----------------------------------------------------------------------------------------------
++    // Le raccord se fait par FAMILLE, pas par identité (.is(self)) : sang périssable et sang éternel sont des
++    // blocs distincts mais visuellement le même liquide. Sans ça, une mare mixte afficherait une couture en plein
++    // milieu. Effet voulu au passage : de l'éternel sous du périssable = la pluie ne laisse que le motif permanent.
++
++    public static boolean isSangSol(final BlockState state) {
++        return state.getBlock() instanceof SangSolBlock;
 +    }
 +
-+    // Le shape dépend des diagonales → propager la re-résolution aux 4 voisins diagonaux (updateShape ne couvre
-+    // que les faces). Appelé par Level.setBlock à la pose/casse (newState + oldState). Sans UPDATE_NEIGHBORS =
-+    // pas de cascade ; seulement si le shape change (anti-boucle) ; borné par updateLimit.
-+    @Override
-+    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
-+                                                 final int updateFlags, final int updateLimit) {
-+        if (updateLimit <= 0) {
++    public static boolean isSangMur(final BlockState state) {
++        return state.getBlock() instanceof SangMurBlock;
++    }
++
++    // --- Résolution --------------------------------------------------------------------------------------------
++
++    // Recalcule l'état complet (forme du blob + coulures au sol / facing au mur) depuis le voisinage. Chaque
++    // sous-classe définit son propre repère : plan horizontal pour le sol, plan du mur pour le mural.
++    protected abstract BlockState etatConnecte(BlockGetter level, BlockPos pos, BlockState state);
++
++    // Re-résout un VOISIN quelconque de la famille (dispatch sol/mur), sans savoir lequel c'est. Utilisé par les
++    // updateIndirectNeighbourShapes des deux côtés : une flaque au sol et un décal mural se voient mutuellement,
++    // donc la propagation doit traverser la frontière sol<->mur.
++    protected static void reresoudre(final LevelAccessor level, final BlockPos pos, final int updateFlags, final int updateLimit) {
++        final BlockState state = level.getBlockState(pos);
++        if (!(state.getBlock() instanceof SangBlock sang)) {
 +            return;
 +        }
-+        for (final BlockPos dp : new BlockPos[]{pos.north().east(), pos.north().west(), pos.south().east(), pos.south().west()}) {
-+            final BlockState ds = level.getBlockState(dp);
-+            if (ds.is(this)) {
-+                final int idx = resolve(level, dp, this);
-+                if (ds.getValue(SHAPE) != idx) {
-+                    level.setBlock(dp, ds.setValue(SHAPE, idx), updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
-+                }
-+            }
++        final BlockState nouveau = sang.etatConnecte(level, pos, state);
++        if (!nouveau.equals(state)) {
++            level.setBlock(pos, nouveau, updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
 +        }
 +    }
 +
-+    @Override
-+    public boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
-+        final BlockPos below = pos.below();
-+        return level.getBlockState(below).isFaceSturdy(level, below, Direction.UP);
++    // --- Délavage ----------------------------------------------------------------------------------------------
++    // Appelé par le randomTick des sous-classes périssables uniquement (randomTicks() n'est activé que pour
++    // elles dans MineazurGeneratedContent).
++    //
++    // precipitationAt() et PAS isRainingAt() : ce dernier ne renvoie true que pour la PLUIE, donc le sang ne se
++    // délaverait pas sous la NEIGE (Biome.getPrecipitationAt renvoie SNOW dès que coldEnoughToSnow, cf. biome
++    // froid ou altitude). Les 5 conditions réunies dans Level.precipitationAt : il pleut, canSeeSky, rien de
++    // bloquant au-dessus (heightmap MOTION_BLOCKING), le biome a hasPrecipitation() et il tombe quelque chose.
++    // Conséquences ASSUMÉES : le sang à l'abri / en intérieur / en grotte est préservé (voulu) ; le sang en
++    // désert ou badlands est éternel de fait (hasPrecipitation() = false, il n'y « pleut » jamais — cohérent).
++    // Limite connue : les random ticks n'ont lieu que dans les chunks chargés et dans la distance de simulation.
++    // Il n'y a pas de rattrapage rétroactif : une averse sur un chunk déchargé ne délave rien.
++    protected static void delaverTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
++        if (level.precipitationAt(pos) == Biome.Precipitation.NONE) {
++            return;
++        }
++        if (random.nextInt(DELAVAGE_CHANCE) != 0) {
++            return;
++        }
++        final int age = state.getValue(AGE);
++        if (age >= 3) {
++            level.removeBlock(pos, false);
++        } else {
++            level.setBlock(pos, state.setValue(AGE, age + 1), Block.UPDATE_ALL);
++        }
 +    }
 +
-+    @Override
-+    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
-+        builder.add(SHAPE);
-+    }
++    // Curseur de vitesse : 1 chance sur N à chaque random tick reçu SOUS la précipitation. Un bloc est
++    // random-tické ~1 fois/68 s (randomTickSpeed 3) -> ~4-5 min de pluie pour les 4 crans d'age.
++    // Chaque bloc tire son PROPRE dé : la mare se délave par plaques irrégulières, pas en fondu d'ensemble
++    // (un fondu uniforme exigerait un flood fill de toute la mare à chaque tick — refusé, cf. SANG_PHASE5.md).
++    private static final int DELAVAGE_CHANCE = 4;
 +}

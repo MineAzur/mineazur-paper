@@ -1,0 +1,219 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/SangSolBlock.java
+@@ -1,0 +_,216 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BooleanProperty;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — sang PEINT AU SOL (mineazur:sang_eternel ; la variante périssable est SangSolPerissableBlock).
++//
++// Blob 47 dans le plan horizontal (SangBlock) + COULURE VERTICALE reprise du mécanisme de la redstone.
++//
++// Pourquoi copier la redstone plutôt que poser un bloc sur le mur : RedStoneWireBlock ne pose RIEN sur la paroi,
++// c'est le fil DU BAS qui dessine lui-même un quad vertical sur la face du voisin (RedstoneSide.UP). Ce n'est pas
++// un détail d'implémentation, c'est une nécessité géométrique : la case au pied d'un mur est déjà occupée par la
++// flaque, donc un bloc mural ne pourrait PAS y tenir. climb (ici) et SangMurBlock sont donc complémentaires —
++// climb couvre la case qui a déjà du sang au sol, SangMurBlock couvre les cases d'air en hauteur.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.SangSolBlock (invariant I3). Toute modif de climbVers()/connecte()/
++// rawVoisins() doit être reportée à l'identique côté client.
++public class SangSolBlock extends SangBlock {
++    public static final MapCodec<SangSolBlock> CODEC = simpleCodec(SangSolBlock::new);
++
++    // Coulure sur la face du bloc voisin. QUATRE booléens plutôt qu'un entier 0..15 : même nombre d'états (×16),
++    // mais le blockstate multipart peut cibler `climb_north: true` en une clause, là où un entier obligerait à
++    // énumérer les 8 valeurs portant le bit.
++    public static final BooleanProperty CLIMB_NORTH = BooleanProperty.create("climb_north");
++    public static final BooleanProperty CLIMB_SOUTH = BooleanProperty.create("climb_south");
++    public static final BooleanProperty CLIMB_EAST = BooleanProperty.create("climb_east");
++    public static final BooleanProperty CLIMB_WEST = BooleanProperty.create("climb_west");
++
++    // Contour de sélection plat (0.5 px). La COLLISION est vide (noCollision, cf. MineazurGeneratedContent).
++    private static final VoxelShape SHAPE_BOX = Block.column(16.0, 0.0, 0.5);
++
++    public SangSolBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any()
++            .setValue(SHAPE, 0)
++            .setValue(CLIMB_NORTH, false)
++            .setValue(CLIMB_SOUTH, false)
++            .setValue(CLIMB_EAST, false)
++            .setValue(CLIMB_WEST, false));
++    }
++
++    @Override
++    protected MapCodec<? extends SangSolBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPE_BOX;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(SHAPE, CLIMB_NORTH, CLIMB_SOUTH, CLIMB_EAST, CLIMB_WEST);
++    }
++
++    public static BooleanProperty climbProperty(final Direction direction) {
++        return switch (direction) {
++            case NORTH -> CLIMB_NORTH;
++            case SOUTH -> CLIMB_SOUTH;
++            case EAST -> CLIMB_EAST;
++            case WEST -> CLIMB_WEST;
++            default -> throw new IllegalArgumentException("climb : direction non horizontale " + direction);
++        };
++    }
++
++    // --- Connexion ---------------------------------------------------------------------------------------------
++
++    // Un plafond plein empêche la coulure de monter — équivalent du garde-fou de la redstone, qui refuse de
++    // grimper quand le bloc au-dessus d'elle est un conducteur (RedStoneWireBlock:238), sinon le fil traverserait.
++    private static boolean plafondBloque(final BlockGetter level, final BlockPos pos) {
++        final BlockPos up = pos.above();
++        return level.getBlockState(up).isCollisionShapeFullBlock(level, up);
++    }
++
++    // Coulure sur la face du voisin en direction `direction` ? Deux déclencheurs :
++    //   (a) MONTÉE façon redstone : du sang au sol sur le DESSUS du voisin (RedStoneWireBlock:246).
++    //   (b) JOINTURE MURALE : un sang_mur juste au-dessus de MOI, plaqué contre ce même voisin. C'est la soudure
++    //       entre les deux mécanismes : le décal mural peint la paroi à partir de Y+1, la coulure comble le
++    //       segment Y que le mural ne peut pas occuper (ma case est déjà prise par la flaque).
++    // La redstone retombe sur RedstoneSide.SIDE quand la face n'est pas pleine ; nous n'avons pas d'équivalent
++    // (une coulure a besoin d'une paroi à peindre) -> pas de face pleine, pas de coulure.
++    private static boolean climbVers(final BlockGetter level, final BlockPos pos, final Direction direction) {
++        final BlockPos neighbourPos = pos.relative(direction);
++        final BlockState neighbourState = level.getBlockState(neighbourPos);
++        if (!neighbourState.isFaceSturdy(level, neighbourPos, direction.getOpposite())) {
++            return false;
++        }
++        if (plafondBloque(level, pos)) {
++            return false;
++        }
++        if (isSangSol(level.getBlockState(neighbourPos.above()))) {
++            return true; // (a)
++        }
++        final BlockState above = level.getBlockState(pos.above());
++        return isSangMur(above) && above.getValue(SangMurBlock.FACING) == direction.getOpposite(); // (b)
++    }
++
++    // Côté connecté (= bord opaque du blob vers cette direction) : même niveau, coulure, ou descente.
++    private static boolean connecte(final BlockGetter level, final BlockPos pos, final Direction direction, final boolean climb) {
++        if (climb) {
++            return true;
++        }
++        final BlockPos neighbourPos = pos.relative(direction);
++        final BlockState neighbourState = level.getBlockState(neighbourPos);
++        if (isSangSol(neighbourState)) {
++            return true;
++        }
++        // DESCENTE : le voisin ne bouche pas et il y a du sang un cran plus bas — le bord regarde vers le vide.
++        // C'est le pendant de RedStoneWireBlock:256, et le cas du sang posé sur le DESSUS d'un bloc dont le
++        // voisin de niveau est de l'air : il pointe vers la flaque d'en bas, qui elle porte la coulure.
++        return !neighbourState.isCollisionShapeFullBlock(level, neighbourPos)
++            && isSangSol(level.getBlockState(neighbourPos.below()));
++    }
++
++    // Voisinage local -> bits n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128 (IDENTIQUE Python + client).
++    // Les DIAGONALES ne comptent qu'au MÊME NIVEAU (pas de montée/descente en diagonale) : elles ne servent qu'à
++    // arrondir les coins, et les faire dépendre du relief rendrait la table combinatoire ingérable pour un gain
++    // visuel nul.
++    private static int rawVoisins(final BlockGetter level, final BlockPos pos, final boolean[] climb) {
++        int raw = 0;
++        if (connecte(level, pos, Direction.NORTH, climb[0])) raw |= 1;
++        if (connecte(level, pos, Direction.SOUTH, climb[1])) raw |= 2;
++        if (connecte(level, pos, Direction.EAST, climb[2])) raw |= 4;
++        if (connecte(level, pos, Direction.WEST, climb[3])) raw |= 8;
++        if (isSangSol(level.getBlockState(pos.north().east()))) raw |= 16;
++        if (isSangSol(level.getBlockState(pos.north().west()))) raw |= 32;
++        if (isSangSol(level.getBlockState(pos.south().east()))) raw |= 64;
++        if (isSangSol(level.getBlockState(pos.south().west()))) raw |= 128;
++        return raw;
++    }
++
++    @Override
++    protected BlockState etatConnecte(final BlockGetter level, final BlockPos pos, final BlockState state) {
++        final boolean[] climb = {
++            climbVers(level, pos, Direction.NORTH),
++            climbVers(level, pos, Direction.SOUTH),
++            climbVers(level, pos, Direction.EAST),
++            climbVers(level, pos, Direction.WEST),
++        };
++        return state
++            .setValue(SHAPE, shapeFromRaw(rawVoisins(level, pos, climb)))
++            .setValue(CLIMB_NORTH, climb[0])
++            .setValue(CLIMB_SOUTH, climb[1])
++            .setValue(CLIMB_EAST, climb[2])
++            .setValue(CLIMB_WEST, climb[3]);
++    }
++
++    // --- Cycle de vie ------------------------------------------------------------------------------------------
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        return this.etatConnecte(context.getLevel(), context.getClickedPos(), this.defaultBlockState());
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        if (!state.canSurvive(level, pos)) {
++            return Blocks.AIR.defaultBlockState();
++        }
++        return this.etatConnecte(level, pos, state);
++    }
++
++    // updateShape ne se déclenche que sur les 6 FACES. Or notre état dépend aussi des 4 diagonaux horizontaux
++    // (coins du blob) ET des voisins orthogonaux un cran plus haut / plus bas (montée et descente). D'où la
++    // propagation manuelle vers ces 12 positions. Garde-fous (repris du bloc P4, c'est l'invariant le plus
++    // fragile de la famille) : pas de UPDATE_NEIGHBORS = pas de cascade ; on n'écrit que si l'état change =
++    // anti-boucle ; updateLimit borne la profondeur.
++    @Override
++    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
++                                                 final int updateFlags, final int updateLimit) {
++        if (updateLimit <= 0) {
++            return;
++        }
++        for (final BlockPos dp : new BlockPos[]{
++            pos.north().east(), pos.north().west(), pos.south().east(), pos.south().west(),
++        }) {
++            reresoudre(level, dp, updateFlags, updateLimit);
++        }
++        for (final Direction d : Direction.Plane.HORIZONTAL) {
++            final BlockPos n = pos.relative(d);
++            reresoudre(level, n.above(), updateFlags, updateLimit);
++            reresoudre(level, n.below(), updateFlags, updateLimit);
++        }
++        // Un sang_mur juste au-dessus dépend de nous (son bas rejoint la flaque) et réciproquement.
++        reresoudre(level, pos.above(), updateFlags, updateLimit);
++    }
++
++    @Override
++    public boolean canSurvive(final BlockState state, final LevelReader level, final BlockPos pos) {
++        final BlockPos below = pos.below();
++        return level.getBlockState(below).isFaceSturdy(level, below, Direction.UP);
++    }
++}

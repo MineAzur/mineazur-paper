@@ -1,0 +1,39 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/SangMurPerissableBlock.java
+@@ -1,0 +_,36 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.server.level.ServerLevel;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++
++// MineAzur — mineazur:sang_mur (décal mural ORDINAIRE). SangMurBlock + délavage.
++// Même raison d'être que SangSolPerissableBlock : AGE ne peut venir que d'une sous-classe.
++public class SangMurPerissableBlock extends SangMurBlock {
++    public static final MapCodec<SangMurPerissableBlock> CODEC = simpleCodec(SangMurPerissableBlock::new);
++
++    public SangMurPerissableBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.defaultBlockState().setValue(AGE, 0));
++    }
++
++    @Override
++    protected MapCodec<? extends SangMurBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        super.createBlockStateDefinition(builder);
++        builder.add(AGE);
++    }
++
++    @Override
++    protected void randomTick(final BlockState state, final ServerLevel level, final BlockPos pos, final RandomSource random) {
++        delaverTick(state, level, pos, random);
++    }
++}
