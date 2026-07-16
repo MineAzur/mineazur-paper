@@ -1,27 +1,57 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/ChairBlock.java
-@@ -1,0 +_,48 @@
+@@ -1,0 +_,124 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
++import java.util.List;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
++import net.minecraft.world.InteractionResult;
++import net.minecraft.world.entity.EntitySpawnReason;
++import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.decoration.ArmorStand;
++import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.item.context.BlockPlaceContext;
 +import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
 +import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.phys.AABB;
++import net.minecraft.world.phys.BlockHitResult;
 +import net.minecraft.world.phys.shapes.CollisionContext;
 +import net.minecraft.world.phys.shapes.Shapes;
 +import net.minecraft.world.phys.shapes.VoxelShape;
 +
 +// MineAzur — prototype Phase 1 : portage du bloc custom 1.2.5 "chair" (ID 202, tboss.SBTBlocks.BlockChair).
 +// Comportements d'origine préservés : hitbox réduite 0.15-0.85 (xz), pleine hauteur ; directionnel yaw->facing.
++//
++// ⚠️ S'ASSEOIR est une FONCTIONNALITÉ NOUVELLE (2026-07-16, demandée) — PAS une restauration : BlockChair de
++// 2011 ne contenait que ses bornes et son orientation, aucune interaction. Cf. docs/reference/blocs/CHAIR_ASSISE.md.
 +public class ChairBlock extends HorizontalDirectionalBlock {
 +    public static final MapCodec<ChairBlock> CODEC = simpleCodec(ChairBlock::new);
 +
 +    // 1.2.5 BlockChair.a(...) : setBlockBounds(0.15F, 0.0F, 0.15F, 0.85F, 1.0F, 0.85F)
 +    private static final VoxelShape SHAPE = Shapes.box(0.15D, 0.0D, 0.15D, 0.85D, 1.0D, 0.85D);
++
++    // --- Assise ------------------------------------------------------------------------------------------------
++    // Il n'existe AUCUN état « assis » en Minecraft : un joueur assis est un joueur qui CHEVAUCHE quelque chose.
++    // Le porteur doit donc être une entité, invisible, immobile, et que le client REÇOIVE (sans quoi il ne peut
++    // pas y attacher le joueur).
++    //
++    // ⛔ `Marker` est EXCLU malgré son nom : canAddPassenger() renvoie false et getAddEntityPacket() lève
++    //    « Markers should never be sent » (Marker.java). Le candidat le plus léger est interdit par construction.
++    // ✅ ArmorStand en mode MARKER : dimensions 0×0 (ArmorStand.MARKER_DIMENSIONS), donc pas de hitbox, pas de
++    //    collision — et comme l'attache PASSENGER a pour repli AT_HEIGHT (EntityAttachment.java:7), une hauteur
++    //    nulle place le joueur EXACTEMENT à la position du porteur. On le pose donc où l'on veut le joueur.
++    // On garde le type VANILLA : un EntityType custom devrait être miroité côté client et décalerait les IDs.
++    public static final String TAG_SIEGE = "mineazur_siege";
++
++    // ⚠️ NON VALIDÉ EN JEU — à régler visuellement. L'assise est à 0.548 (cf. gen_geometry) ; la pose assise
++    // descend le corps sous l'origine du joueur, d'où ce retrait empirique. Trop haut = le joueur flotte, trop
++    // bas = il s'enfonce dans le siège.
++    private static final double HAUTEUR_ASSISE = 0.30D;
 +
 +    public ChairBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
@@ -47,5 +77,51 @@
 +    @Override
 +    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
 +        builder.add(FACING);
++    }
++
++    @Override
++    protected InteractionResult useWithoutItem(
++        final BlockState state, final Level level, final BlockPos pos, final Player player, final BlockHitResult hitResult
++    ) {
++        // S'accroupir laisse passer : sinon on ne pourrait plus poser un bloc contre une chaise.
++        if (player.isShiftKeyDown() || player.isPassenger()) {
++            return InteractionResult.PASS;
++        }
++        if (level.isClientSide()) {
++            return InteractionResult.SUCCESS;
++        }
++        if (chaiseOccupee(level, pos)) {
++            return InteractionResult.PASS;
++        }
++
++        final ArmorStand siege = EntityType.ARMOR_STAND.create(level, EntitySpawnReason.TRIGGERED);
++        if (siege == null) {
++            return InteractionResult.PASS;
++        }
++        siege.setPos(pos.getX() + 0.5D, pos.getY() + HAUTEUR_ASSISE, pos.getZ() + 0.5D);
++        siege.setMarker(true);       // dimensions 0×0 : ni hitbox ni collision, et l'attache tombe sur sa position
++        siege.setInvisible(true);
++        siege.setNoGravity(true);
++        siege.setSilent(true);
++        siege.setInvulnerable(true);
++        siege.addTag(TAG_SIEGE);     // sauvegardé avec l'entité -> survit à un redémarrage, d'où le ménage (cf. ArmorStand.tick)
++        // Le joueur regarde dans le sens de la chaise (FACING = le dossier fait face au joueur qui l'a posée,
++        // donc on s'assoit en regardant à l'OPPOSÉ du dossier).
++        siege.setYRot(state.getValue(FACING).getOpposite().toYRot());
++        level.addFreshEntity(siege);
++
++        if (!player.startRiding(siege, true, true)) {
++            siege.discard();   // pas de porteur orphelin si le chevauchement échoue
++            return InteractionResult.PASS;
++        }
++        return InteractionResult.CONSUME;
++    }
++
++    // Une chaise est occupée s'il reste un porteur dessus. Inutile de vérifier qu'il a un passager : un porteur
++    // sans passager se supprime au tick suivant (cf. le ménage dans ArmorStand.tick).
++    private static boolean chaiseOccupee(final Level level, final BlockPos pos) {
++        final List<ArmorStand> sieges = level.getEntitiesOfClass(
++            ArmorStand.class, new AABB(pos), a -> a.entityTags().contains(TAG_SIEGE));
++        return !sieges.isEmpty();
 +    }
 +}

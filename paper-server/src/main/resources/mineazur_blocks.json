@@ -162,7 +162,7 @@
     {
       "legacyId": 200,
       "name": "table",
-      "archetype": "simple",
+      "archetype": "table",
       "params": {
         "directional": false,
         "occlusion": false,
@@ -171,7 +171,8 @@
         "resistance": 5.0,
         "sound": "WOOD",
         "mapColor": "WOOD"
-      }
+      },
+      "_comment_pieds": "archetype 'table' (2026-07-16, etait 'simple') : la table detecte ses voisines (4 booleens north/south/east/west = 16 etats) et CACHE son pied central quand elle est traversee de part en part sur un axe (voisine e+w, ou n+s) -- le plateau est alors deja tenu des deux cotes. Motif : l'original a ete dessine pour une table SEULE, donc une rangee donnait une foret de pedestaux (signale en jeu). Une table SEULE reste IDENTIQUE a 2011 : aucune divergence sur les tables deja posees sur la map. Le plateau n'est jamais orphelin (un groupe garde des pieds a ses extremites). La COLLISION reste le cube plein d'avant : hors perimetre. Cf. reference/blocs/TABLE_PIEDS.md."
     },
     {
       "legacyId": 201,

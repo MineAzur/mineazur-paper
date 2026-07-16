@@ -1,0 +1,109 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/TableBlock.java
+@@ -1,0 +_,106 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.block.state.properties.BooleanProperty;
++
++// MineAzur — "table" (200), portage du bloc custom 1.2.5 (tboss.SBTBlocks.BlockTable) : plateau + pied central.
++//
++// ⚠️ LES PIEDS DU MILIEU S'EFFACENT (2026-07-16, demandé). L'original a été dessiné pour une table SEULE : accoler
++// trois tables donnait trois pédestaux alignés, une « forêt de poteaux » là où on attend une tablée. Chaque table
++// regarde donc ses voisines et cache son pied quand il ne sert à rien.
++//
++// RÈGLE : le pied disparaît si la table est TRAVERSÉE DE PART EN PART sur un axe (voisine à l'est ET à l'ouest,
++// ou au nord ET au sud) — le plateau est alors déjà tenu des deux côtés. Sinon elle le garde. Conséquences :
++//   table seule -> pied         (IDENTIQUE à 2011 : zéro divergence sur les tables déjà posées)
++//   rangée de 2 -> 2 pieds      (chacune n'a qu'une voisine)
++//   rangée de 3 -> les 2 BOUTS  (le milieu est traversé)
++//   carré 2x2   -> 4 pieds      (aucune n'est traversée : ses 2 voisines sont sur des axes différents)
++//   carré 3x3   -> les 4 COINS
++// Le plateau n'est JAMAIS orphelin : un groupe garde toujours des pieds à ses extrémités.
++//
++// La COLLISION reste le cube plein de l'archétype d'origine — hors périmètre, non demandé.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.TableBlock (invariant I3) : mêmes propriétés, mêmes noms, même règle.
++public class TableBlock extends Block {
++    public static final MapCodec<TableBlock> CODEC = simpleCodec(TableBlock::new);
++
++    // Propriétés VANILLA (`north`/`south`/`east`/`west`, cf. vitres teintées) : noms connus, blockstate lisible.
++    public static final BooleanProperty NORTH = BlockStateProperties.NORTH;
++    public static final BooleanProperty SOUTH = BlockStateProperties.SOUTH;
++    public static final BooleanProperty EAST = BlockStateProperties.EAST;
++    public static final BooleanProperty WEST = BlockStateProperties.WEST;
++
++    public TableBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any()
++            .setValue(NORTH, false)
++            .setValue(SOUTH, false)
++            .setValue(EAST, false)
++            .setValue(WEST, false));
++    }
++
++    @Override
++    protected MapCodec<TableBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(NORTH, SOUTH, EAST, WEST);
++    }
++
++    public static BooleanProperty propriete(final Direction direction) {
++        return switch (direction) {
++            case NORTH -> NORTH;
++            case SOUTH -> SOUTH;
++            case EAST -> EAST;
++            case WEST -> WEST;
++            default -> throw new IllegalArgumentException("table : direction non horizontale " + direction);
++        };
++    }
++
++    private static boolean voisine(final BlockGetter level, final BlockPos pos, final Direction direction) {
++        return level.getBlockState(pos.relative(direction)).getBlock() instanceof TableBlock;
++    }
++
++    private static BlockState etatConnecte(final BlockGetter level, final BlockPos pos, BlockState state) {
++        for (final Direction d : Direction.Plane.HORIZONTAL) {
++            state = state.setValue(propriete(d), voisine(level, pos, d));
++        }
++        return state;
++    }
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        return etatConnecte(context.getLevel(), context.getClickedPos(), this.defaultBlockState());
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        // Seules les voisines HORIZONTALES comptent : inutile de recalculer quand le bloc du dessus bouge.
++        if (!directionToNeighbour.getAxis().isHorizontal()) {
++            return super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
++        }
++        return state.setValue(propriete(directionToNeighbour), neighbourState.getBlock() instanceof TableBlock);
++    }
++}

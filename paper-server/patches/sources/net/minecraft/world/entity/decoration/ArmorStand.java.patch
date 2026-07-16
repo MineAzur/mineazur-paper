@@ -242,13 +242,30 @@
      }
  
      private void playBrokenSound() {
-@@ -458,9 +_,40 @@
+@@ -458,9 +_,57 @@
          return this.isSmall();
      }
  
 +    // Paper start - Allow ArmorStands not to tick
 +    @Override
 +    public void tick() {
++        // MineAzur — MÉNAGE des porteurs d'assise (cf. ChairBlock). Un porteur sans passager n'a plus de raison
++        // d'être : on le supprime. Cette règle UNIQUE couvre TOUS les cas de fuite, y compris ceux qu'aucun
++        // événement ne signale — descente, déconnexion, mort, chunk déchargé puis rechargé, et surtout un CRASH
++        // serveur pendant que quelqu'un est assis (le porteur est sauvegardé avec le monde, il se nettoie donc
++        // tout seul au rechargement). Sans ça on accumulerait des entités invisibles, bug qui ne se voit qu'au
++        // bout de plusieurs semaines.
++        //
++        // ⚠️ AVANT le garde `canTick` de Paper, VOLONTAIREMENT : quand `armor-stands.tick` est désactivé en
++        // config, tick() sort immédiatement — le ménage placé après ne tournerait jamais, et la fuite
++        // reviendrait précisément sur les serveurs optimisés.
++        //
++        // Pas de course avec la pose : ChairBlock fait addFreshEntity puis startRiding dans la MÊME méthode,
++        // aucun tick ne s'intercale. Et si startRiding échouait, ce ménage ramasserait le porteur de toute façon.
++        if (!this.entityTags().isEmpty() && this.entityTags().contains(net.minecraft.world.level.block.ChairBlock.TAG_SIEGE) && !this.isVehicle()) {
++            this.discard();
++            return;
++        }
 +        if (!this.canTick) {
 +            if (this.noTickEquipmentDirty) {
 +                this.noTickEquipmentDirty = false;

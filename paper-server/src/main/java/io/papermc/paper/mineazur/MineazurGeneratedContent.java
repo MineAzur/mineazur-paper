@@ -46,6 +46,7 @@ import net.minecraft.world.level.block.SangMurBlock;
 import net.minecraft.world.level.block.SangMurPerissableBlock;
 import net.minecraft.world.level.block.SangSolBlock;
 import net.minecraft.world.level.block.SangSolPerissableBlock;
+import net.minecraft.world.level.block.TableBlock;
 import net.minecraft.world.level.block.ToitBlock;
 import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -187,6 +188,8 @@ public final class MineazurGeneratedContent {
             case "simple" -> s.directional() ? new MineazurHorizontalBlock(props) : new Block(props);
             case "chair" -> new ChairBlock(props);
             case "plafond" -> new PlafondBlock(props);
+            // `table` : 4 booléens de voisinage — le pied du milieu s'efface dans un groupe (cf. TableBlock).
+            case "table" -> new TableBlock(props);
             // Famille sang : le périssable est une SOUS-CLASSE (il porte AGE en plus), pas un booléen — cf.
             // l'en-tête de SangBlock, createBlockStateDefinition tourne avant l'init des champs d'instance.
             case "connected" -> s.perishable() ? new SangSolPerissableBlock(props) : new SangSolBlock(props);
