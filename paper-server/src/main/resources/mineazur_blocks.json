@@ -218,9 +218,9 @@
     {
       "legacyId": 204,
       "_comment": "light 0 (CORRIGE le 2026-07-14, valait 1 a tort) : SBTBlocks.java fait setLightValue(0.04F), et Block.a(float) = lightEmission = (int)(15.0F * f) -> (int)0.5999... = 0. Le toit n'a JAMAIS eclaire en 2011 : l'auteur visait sans doute une lueur, la TRONCATURE l'a annulee. Le 1 venait d'un arrondi de 0.6 au lieu d'une troncature.",
-      "_comment_occlusion": "false (CORRIGE le 2026-07-16, valait true) : le modele est un ESCALIER de 10 marches (gen_geometry.py), pas un cube plein -> avec occlusion true, MC croyait le toit opaque et CULLAIT la face du bloc voisin (bois_verni) qui le touche, alors que les marches ne la cachent pas => TROU visible au joint (signale en jeu). Le true etait un portage FIDELE mais PIEGE : en 1.2.5 serveur et client avaient chacun leur classe Block, et BlockToit (serveur) n'y surchargeait pas a()/b() -> cube opaque, ce qui ne pilotait QUE la lumiere ; le culling, lui, etait decide par la classe CLIENTE du mineazur.jar PERDU. En moderne une seule classe fait les deux : canOcclude gouverne aussi le rendu. Valeur portee juste, champ devenu autre chose. Temoins 1.2.5 : BlockStairs et BlockGlass surchargent a()/b() a false ; le complement coin_de_toit (meme forme) etait deja a false. N'affecte NI les etats NI la palette (drapeau de Properties) -> I1/I3 intacts. La hitbox reste un CUBE PLEIN, elle : fidele a 2011 (BlockToit ne posait aucun setBlockBounds).",
+      "_comment_occlusion": "false (CORRIGE le 2026-07-16, valait true) : le modele est un ESCALIER de 10 marches (gen_geometry.py), pas un cube plein -> avec occlusion true, MC croyait le toit opaque et CULLAIT la face du bloc voisin (bois_verni) qui le touche, alors que les marches ne la cachent pas => TROU visible au joint (signale en jeu). Le true etait un portage FIDELE mais PIEGE : en 1.2.5 serveur et client avaient chacun leur classe Block, et BlockToit (serveur) n'y surchargeait pas a()/b() -> cube opaque, ce qui ne pilotait QUE la lumiere ; le culling, lui, etait decide par la classe CLIENTE du mineazur.jar PERDU. En moderne une seule classe fait les deux : canOcclude gouverne aussi le rendu. Valeur portee juste, champ devenu autre chose. Temoins 1.2.5 : BlockStairs et BlockGlass surchargent a()/b() a false ; le complement coin_de_toit (meme forme) etait deja a false. N'affecte NI les etats NI la palette (drapeau de Properties) -> I1/I3 intacts. (La hitbox etait alors un cube plein, fidele a 2011 ; elle suit desormais les marches -> cf. _comment_fusion.)",
       "name": "toit",
-      "archetype": "simple",
+      "archetype": "toit",
       "params": {
         "directional": true,
         "occlusion": false,
@@ -229,7 +229,8 @@
         "resistance": 15.0,
         "sound": "WOOD",
         "mapColor": "WOOD"
-      }
+      },
+      "_comment_fusion": "archetype 'toit' (2026-07-16, etait 'simple') : absorbe coin_de_toit (210, RETIRE) via une propriete SHAPE calculee depuis les voisins comme les escaliers vanilla -> coins automatiques. DEUX DIVERGENCES ASSUMEES vs 2011 (demandees) : (1) collision cube plein -> 10 marches, les toits s'escaladent (BlockToit ne posait aucun setBlockBounds : ils etaient infranchissables) ; (2) les 1822 toits deja poses gagnent des coins aux jonctions, la forme se calculant a l'execution. Cf. reference/blocs/TOIT_FUSION.md."
     },
     {
       "_comment": "light: DIVERGENCE ASSUMEE vs 2011 (choix utilisateur, 2026-07-14). SBTBlocks.java faisait setLightValue(0.994F) -> (int)(15.0F*0.994F) = 14 : le bois verni eclairait donc presque au maximum, et servait d'eclairage sans torches. Juge non voulu (une bourde de l'auteur d'origine plutot qu'une intention) -> ramene a 0, bloc de construction normal. Notre valeur 15 etait de toute facon fausse : arrondi la ou le NMS TRONQUE.",
@@ -307,21 +308,6 @@
         "sound": "GLASS",
         "mapColor": "DIAMOND",
         "states": "hanging:false|true (posee au sol / suspendue au plafond, patron LanternBlock). Le fragment 2012 dessinait DEJA ces 2 variantes (meta<=1 socle en bas, meta>=2 socle en haut) mais les liait au yaw du joueur (copier-coller de BlockChair) : bug corrige, hanging derive desormais de la face cliquee. NB : archetype 'lamp' et NON 'simple' comme le supposait le backlog - le fragment montre un luminaire non-cube (socle+tige+coeur+4 pointes), pas un cube plein."
-      }
-    },
-    {
-      "_comment": "Escalier diagonal en 10 marches se retractant vers un coin (complement du bloc 'toit' 204) : les 4 orientations = les 4 coins. Params alignes sur 'toit' (WOOD, 2.0/15.0) pour que les deux s'assortissent visuellement - le fragment ne definissait aucun de ces params (Material.wood seul). light: SUIT le toit, donc 0 (valait 1, aligne sur la valeur erronee du toit corrigee le 2026-07-14 : cf. son _comment).",
-      "legacyId": 210,
-      "name": "coin_de_toit",
-      "archetype": "coin_toit",
-      "params": {
-        "directional": true,
-        "occlusion": false,
-        "light": 0,
-        "hardness": 2.0,
-        "resistance": 15.0,
-        "sound": "WOOD",
-        "mapColor": "WOOD"
       }
     },
     {

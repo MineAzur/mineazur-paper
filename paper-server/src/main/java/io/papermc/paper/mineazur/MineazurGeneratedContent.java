@@ -38,7 +38,6 @@ import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.equipment.EquipmentAssets;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.ChairBlock;
-import net.minecraft.world.level.block.CoinDeToitBlock;
 import net.minecraft.world.level.block.DiamondLampBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
@@ -47,6 +46,7 @@ import net.minecraft.world.level.block.SangMurBlock;
 import net.minecraft.world.level.block.SangMurPerissableBlock;
 import net.minecraft.world.level.block.SangSolBlock;
 import net.minecraft.world.level.block.SangSolPerissableBlock;
+import net.minecraft.world.level.block.ToitBlock;
 import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -192,7 +192,8 @@ public final class MineazurGeneratedContent {
             case "connected" -> s.perishable() ? new SangSolPerissableBlock(props) : new SangSolBlock(props);
             case "connected_wall" -> s.perishable() ? new SangMurPerissableBlock(props) : new SangMurBlock(props);
             case "lamp" -> new DiamondLampBlock(props);
-            case "coin_toit" -> new CoinDeToitBlock(props);
+            // `toit` a ABSORBÉ `coin_de_toit` (210, retiré le 2026-07-16) : son coin est devenu la forme OUTER.
+            case "toit" -> new ToitBlock(props);
             case "tombe" -> new TombeBlock(props);
             default -> throw new IllegalStateException("archétype non supporté : " + s.archetype());
         };

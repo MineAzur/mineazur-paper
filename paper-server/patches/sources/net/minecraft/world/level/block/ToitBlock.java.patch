@@ -1,0 +1,211 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/ToitBlock.java
+@@ -1,0 +_,208 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import java.util.EnumMap;
++import java.util.Map;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.block.state.properties.EnumProperty;
++import net.minecraft.world.level.block.state.properties.StairsShape;
++import net.minecraft.world.phys.shapes.BooleanOp;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++
++// MineAzur — "toit" (204), escalier de 10 marches, avec COINS AUTOMATIQUES à la manière des escaliers vanilla.
++//
++// Ce bloc ABSORBE l'ancien `coin_de_toit` (210), retiré du registre le 2026-07-16 (choix utilisateur) : son
++// coin est devenu la forme OUTER de celui-ci. Ce retrait ne coûte aucune migration — le 210 faisait partie du
++// « Lot B » de la MAJ Zehir 2012, JAMAIS déployé : absent de la map 2011 (0 occurrence) et référencé par aucun
++// outil (convert, replay). Le `toit`, lui, est posé 1822 fois sur la map d'origine.
++//
++// ⚠️ DEUX DIVERGENCES ASSUMÉES vs 2011 (demandées, cf. docs/reference/blocs/TOIT_FUSION.md) :
++//   1. COLLISION. En 2011 le toit était un CUBE PLEIN (BlockToit ne posait aucun setBlockBounds) : une pente de
++//      toits était infranchissable. La collision suit désormais les 10 marches -> les toits s'escaladent, chaque
++//      marche ne faisant que 0.1 de haut.
++//   2. COINS. Les bâtisseurs de 2011 n'avaient pas de bloc de coin (jamais déployé) : leurs jonctions de pentes
++//      étaient des angles bruts. La forme se calculant depuis les VOISINS à l'exécution, elle s'applique aussi
++//      aux toits déjà posés : l'aspect des bâtiments d'origine change aux jonctions. C'était le prix accepté.
++//
++// FACING = la direction vers laquelle la pente MONTE (= regard du joueur à la pose, cf. BlockToit.postPlace :
++// regard EST -> meta 0 = « droite est »). MÊME sémantique que les escaliers vanilla, dont FACING désigne aussi
++// le côté HAUT — c'est ce qui permet de reprendre leur logique de coins telle quelle.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.ToitBlock (invariant I3) : FACING/SHAPE, leurs noms et l'algorithme
++// de forme doivent être identiques des deux côtés, sinon les IDs d'états de palette divergent.
++public class ToitBlock extends HorizontalDirectionalBlock {
++    public static final MapCodec<ToitBlock> CODEC = simpleCodec(ToitBlock::new);
++
++    // Réutilise la propriété VANILLA (`minecraft:stairs_shape`, valeurs straight/inner_left/... ) : mêmes noms
++    // que les escaliers, donc un blockstate qui se lit sans traduction, et 0 risque de dériver du client.
++    public static final EnumProperty<StairsShape> SHAPE = BlockStateProperties.STAIRS_SHAPE;
++
++    private static final Map<Direction, VoxelShape> FORMES_DROITES = new EnumMap<>(Direction.class);
++    private static final Map<Direction, VoxelShape> FORMES_COIN_EXT = new EnumMap<>(Direction.class);
++    private static final Map<Direction, VoxelShape> FORMES_COIN_INT = new EnumMap<>(Direction.class);
++
++    static {
++        for (final Direction d : Direction.Plane.HORIZONTAL) {
++            FORMES_DROITES.put(d, pente(d));
++            FORMES_COIN_EXT.put(d, coinExterieur(d));
++            FORMES_COIN_INT.put(d, coinInterieur(d));
++        }
++    }
++
++    // --- Géométrie ---------------------------------------------------------------------------------------------
++    // Une marche de la pente qui monte vers `d`, au niveau i (0..9). Au niveau i, la matière est en retrait de
++    // i/10 depuis la face OPPOSÉE à d : i=0 -> dalle pleine, i=9 -> mince bande côté d. C'est exactement la règle
++    // de gen_geometry.py (`toit_boxes`), qui transcrit RenderBlocks#renderBlockToit — modèle et collision
++    // dérivent donc de la MÊME règle, et ne peuvent pas se désynchroniser.
++    private static VoxelShape marche(final Direction d, final int i) {
++        final double ins = i / 10.0D;
++        return Shapes.box(
++            d == Direction.EAST ? ins : 0.0D,
++            ins,
++            d == Direction.SOUTH ? ins : 0.0D,
++            d == Direction.WEST ? 1.0D - ins : 1.0D,
++            ins + 0.1D,
++            d == Direction.NORTH ? 1.0D - ins : 1.0D);
++    }
++
++    private static VoxelShape pente(final Direction d) {
++        VoxelShape s = Shapes.empty();
++        for (int i = 0; i < 10; i++) {
++            s = Shapes.or(s, marche(d, i));
++        }
++        return s.optimize();
++    }
++
++    // Coin EXTÉRIEUR (convexe) = INTERSECTION des deux pentes, niveau par niveau : la matière ne survit que là
++    // où les deux la gardent. Redonne exactement l'ancien CoinDeToitBlock.makeShape (coin plein en d ∪ d.ccw).
++    private static VoxelShape coinExterieur(final Direction d) {
++        VoxelShape s = Shapes.empty();
++        for (int i = 0; i < 10; i++) {
++            s = Shapes.or(s, Shapes.join(marche(d, i), marche(d.getCounterClockWise(), i), BooleanOp.AND));
++        }
++        return s.optimize();
++    }
++
++    // Coin INTÉRIEUR (concave) = UNION des deux pentes : la matière survit si l'une des deux la garde.
++    private static VoxelShape coinInterieur(final Direction d) {
++        VoxelShape s = Shapes.empty();
++        for (int i = 0; i < 10; i++) {
++            s = Shapes.or(s, marche(d, i), marche(d.getClockWise(), i));
++        }
++        return s.optimize();
++    }
++
++    public ToitBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any()
++            .setValue(FACING, Direction.NORTH)
++            .setValue(SHAPE, StairsShape.STRAIGHT));
++    }
++
++    @Override
++    protected MapCodec<ToitBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(FACING, SHAPE);
++    }
++
++    // ⚠️ L'INDEXATION est reprise TELLE QUELLE de StairBlock.getShape (lignes 78-89) : trois formes de base
++    // seulement, la direction d'indexation portant la différence gauche/droite. Ne pas « simplifier » en 5
++    // géométries — c'est ce tour de passe-passe qui garantit que nos coins tombent du même côté que ceux des
++    // escaliers vanilla, référence visuelle du joueur.
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        final Direction facing = state.getValue(FACING);
++        final StairsShape shape = state.getValue(SHAPE);
++        final Map<Direction, VoxelShape> formes = switch (shape) {
++            case STRAIGHT -> FORMES_DROITES;
++            case OUTER_LEFT, OUTER_RIGHT -> FORMES_COIN_EXT;
++            case INNER_LEFT, INNER_RIGHT -> FORMES_COIN_INT;
++        };
++        return formes.get(switch (shape) {
++            case STRAIGHT, OUTER_LEFT, INNER_RIGHT -> facing;
++            case INNER_LEFT -> facing.getCounterClockWise();
++            case OUTER_RIGHT -> facing.getClockWise();
++        });
++    }
++
++    // --- Forme depuis les voisins ------------------------------------------------------------------------------
++    // Transcription de StairBlock.getStairsShape, PRIVÉE du test HALF : un toit n'a pas de moitié haute/basse
++    // (2011 n'en avait pas, et une pente de toit retournée n'a pas de sens). Le reste est identique au mot près.
++
++    public static boolean estToit(final BlockState state) {
++        return state.getBlock() instanceof ToitBlock;
++    }
++
++    private static StairsShape formeDepuisVoisins(final BlockState state, final BlockGetter level, final BlockPos pos) {
++        final Direction facing = state.getValue(FACING);
++
++        final BlockState derriere = level.getBlockState(pos.relative(facing));
++        if (estToit(derriere)) {
++            final Direction f = derriere.getValue(FACING);
++            if (f.getAxis() != facing.getAxis() && peutPrendreForme(state, level, pos, f.getOpposite())) {
++                return f == facing.getCounterClockWise() ? StairsShape.OUTER_LEFT : StairsShape.OUTER_RIGHT;
++            }
++        }
++
++        final BlockState devant = level.getBlockState(pos.relative(facing.getOpposite()));
++        if (estToit(devant)) {
++            final Direction f = devant.getValue(FACING);
++            if (f.getAxis() != facing.getAxis() && peutPrendreForme(state, level, pos, f)) {
++                return f == facing.getCounterClockWise() ? StairsShape.INNER_LEFT : StairsShape.INNER_RIGHT;
++            }
++        }
++
++        return StairsShape.STRAIGHT;
++    }
++
++    // Un toit ALIGNÉ du côté visé annule le coin : sinon on creuserait un coin au milieu d'une pente continue.
++    private static boolean peutPrendreForme(final BlockState state, final BlockGetter level, final BlockPos pos, final Direction voisin) {
++        final BlockState n = level.getBlockState(pos.relative(voisin));
++        return !estToit(n) || n.getValue(FACING) != state.getValue(FACING);
++    }
++
++    // --- Cycle de vie ------------------------------------------------------------------------------------------
++
++    @Override
++    public BlockState getStateForPlacement(final BlockPlaceContext context) {
++        // FACING = regard du joueur, SANS getOpposite() : la pente monte DANS la direction du regard (1.2.5
++        // BlockToit.postPlace : regard EST -> meta 0 = « droite est »). Convention de 2011 CONSERVÉE — le toit
++        // est sur la map, et c'est elle que le remap Phase 2 (`dirFromLegacy`) rejoue.
++        final BlockState state = this.defaultBlockState().setValue(FACING, context.getHorizontalDirection());
++        return state.setValue(SHAPE, formeDepuisVoisins(state, context.getLevel(), context.getClickedPos()));
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        // Seuls les voisins HORIZONTAUX peuvent changer la forme (cf. StairBlock) : inutile de recalculer quand
++        // c'est le bloc du dessus ou du dessous qui bouge.
++        return directionToNeighbour.getAxis().isHorizontal()
++            ? state.setValue(SHAPE, formeDepuisVoisins(state, level, pos))
++            : super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
++    }
++}
