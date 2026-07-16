@@ -218,11 +218,12 @@
     {
       "legacyId": 204,
       "_comment": "light 0 (CORRIGE le 2026-07-14, valait 1 a tort) : SBTBlocks.java fait setLightValue(0.04F), et Block.a(float) = lightEmission = (int)(15.0F * f) -> (int)0.5999... = 0. Le toit n'a JAMAIS eclaire en 2011 : l'auteur visait sans doute une lueur, la TRONCATURE l'a annulee. Le 1 venait d'un arrondi de 0.6 au lieu d'une troncature.",
+      "_comment_occlusion": "false (CORRIGE le 2026-07-16, valait true) : le modele est un ESCALIER de 10 marches (gen_geometry.py), pas un cube plein -> avec occlusion true, MC croyait le toit opaque et CULLAIT la face du bloc voisin (bois_verni) qui le touche, alors que les marches ne la cachent pas => TROU visible au joint (signale en jeu). Le true etait un portage FIDELE mais PIEGE : en 1.2.5 serveur et client avaient chacun leur classe Block, et BlockToit (serveur) n'y surchargeait pas a()/b() -> cube opaque, ce qui ne pilotait QUE la lumiere ; le culling, lui, etait decide par la classe CLIENTE du mineazur.jar PERDU. En moderne une seule classe fait les deux : canOcclude gouverne aussi le rendu. Valeur portee juste, champ devenu autre chose. Temoins 1.2.5 : BlockStairs et BlockGlass surchargent a()/b() a false ; le complement coin_de_toit (meme forme) etait deja a false. N'affecte NI les etats NI la palette (drapeau de Properties) -> I1/I3 intacts. La hitbox reste un CUBE PLEIN, elle : fidele a 2011 (BlockToit ne posait aucun setBlockBounds).",
       "name": "toit",
       "archetype": "simple",
       "params": {
         "directional": true,
-        "occlusion": true,
+        "occlusion": false,
         "light": 0,
         "hardness": 2.0,
         "resistance": 15.0,
