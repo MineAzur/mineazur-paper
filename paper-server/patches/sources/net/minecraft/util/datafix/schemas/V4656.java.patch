@@ -1,0 +1,12 @@
+--- a/net/minecraft/util/datafix/schemas/V4656.java
++++ b/net/minecraft/util/datafix/schemas/V4656.java
+@@ -15,6 +_,9 @@
+         Map<String, Supplier<TypeTemplate>> map = super.registerEntities(schema);
+         schema.registerSimple(map, "minecraft:camel_husk");
+         schema.registerSimple(map, "minecraft:parched");
++        // MineAzur — déclare les entités custom dans le DERNIER schéma qui en enregistre : les schémas
++        // suivants (4769+) héritent de celui-ci, donc le type est résolu pour la data version courante.
++        io.papermc.paper.mineazur.MineazurGeneratedContent.registerDataFixerEntities(schema, map);
+         return map;
+     }
+ }

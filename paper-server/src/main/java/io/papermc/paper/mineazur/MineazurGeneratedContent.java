@@ -3,6 +3,9 @@ package io.papermc.paper.mineazur;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.mojang.datafixers.DSL;
+import com.mojang.datafixers.schemas.Schema;
+import com.mojang.datafixers.types.templates.TypeTemplate;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.function.Supplier;
+import net.minecraft.util.datafix.fixes.References;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -281,6 +286,22 @@ public final class MineazurGeneratedContent {
             EntityType.Builder.<MineazurShurikenEntity>of(MineazurShurikenEntity::new, MobCategory.MISC)
                 .noLootTable().sized(0.25F, 0.25F).clientTrackingRange(4).updateInterval(10).build(key));
         MineazurShurikenEntity.TYPE = type;
+    }
+
+    // Hook appelé depuis le schéma DataFixerUpper le plus récent qui déclare des entités (V4656).
+    //
+    // POURQUOI : EntityType.Builder.build() appelle Util.fetchChoiceType(ENTITY_TREE, id) pour toute entité
+    // « serialize » ; un id absent du schéma logge « No data fixer registered for mineazur:shuriken » (et
+    // LÈVE en IDE, cf. Util.doFetchChoiceType). Sans déclaration, aucune règle ne migrerait le NBT des
+    // shurikens déjà posés en monde le jour d'un bump de version MC.
+    //
+    // FORME : MineazurShurikenEntity étend Snowball, donc ThrowableItemProjectile, qui sérialise TOUJOURS son
+    // ItemStack sous « Item » (ThrowableItemProjectile.addAdditionalSaveData). On calque donc splash_potion
+    // (V4306) — optionalFields("Item", ITEM_STACK) — et NON snowball, que vanilla déclare en registerSimple :
+    // l'item d'un snowball est toujours minecraft:snowball, le nôtre est un item CUSTOM dont l'ItemStack
+    // imbriqué doit rester migrable.
+    public static void registerDataFixerEntities(final Schema schema, final Map<String, Supplier<TypeTemplate>> map) {
+        schema.register(map, NS + ":shuriken", () -> DSL.optionalFields("Item", References.ITEM_STACK.in(schema)));
     }
 
     // Bière (portage de tboss.SBTBlocks.ItemBiere, 2011) : à la consommation « soûle » le joueur (60 s) puis
