@@ -48,10 +48,10 @@
 +    // On garde le type VANILLA : un EntityType custom devrait être miroité côté client et décalerait les IDs.
 +    public static final String TAG_SIEGE = "mineazur_siege";
 +
-+    // ⚠️ NON VALIDÉ EN JEU — à régler visuellement. L'assise est à 0.548 (cf. gen_geometry) ; la pose assise
-+    // descend le corps sous l'origine du joueur, d'où ce retrait empirique. Trop haut = le joueur flotte, trop
-+    // bas = il s'enfonce dans le siège.
-+    private static final double HAUTEUR_ASSISE = 0.30D;
++    // Réglé à l'œil en jeu. L'assise est à 0.548 (cf. gen_geometry) ; la pose assise descend le corps sous
++    // l'origine du joueur, d'où ce retrait empirique. Trop haut = le joueur flotte, trop bas = il s'enfonce
++    // dans le siège. 0.30 puis 0.42 s'enfonçaient encore un poil (2026-07-17) → aligné sur l'assise 0.55.
++    private static final double HAUTEUR_ASSISE = 0.55D;
 +
 +    public ChairBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
