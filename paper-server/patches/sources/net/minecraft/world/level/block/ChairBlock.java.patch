@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/ChairBlock.java
-@@ -1,0 +_,124 @@
+@@ -1,0 +_,147 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -20,6 +20,7 @@
 +import net.minecraft.world.level.block.state.StateDefinition;
 +import net.minecraft.world.phys.AABB;
 +import net.minecraft.world.phys.BlockHitResult;
++import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.phys.shapes.CollisionContext;
 +import net.minecraft.world.phys.shapes.Shapes;
 +import net.minecraft.world.phys.shapes.VoxelShape;
@@ -68,10 +69,32 @@
 +        return SHAPE;
 +    }
 +
++    // Rayon (depuis le centre du bloc, en XZ) sous lequel le point d'impact est jugé « trop centré » pour
++    // trancher un axe -> on retombe sur l'orientation « face au placeur ».
++    private static final double SEUIL_CENTRE = 0.12D;
++
 +    @Override
 +    public BlockState getStateForPlacement(final BlockPlaceContext context) {
-+        // 1.2.5 BlockChair.postPlace : orientation dérivée du yaw du joueur -> la chaise fait face au joueur.
-+        return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
++        // MineAzur (2026-07-17) : orientation dérivée du POINT VISÉ sur le bloc cible, pas du yaw du joueur.
++        // FACING = côté du DOSSIER = direction où l'on pointe sur la surface ; on s'assoit à l'opposé
++        // (cf. useWithoutItem). Repli sur l'ancien comportement « dossier face au placeur » (1.2.5
++        // BlockChair.postPlace, dérivé du yaw) quand la visée est trop proche du centre pour être tranchée.
++        return this.defaultBlockState().setValue(FACING, orientationDepuisVisee(context));
++    }
++
++    private static Direction orientationDepuisVisee(final BlockPlaceContext context) {
++        final BlockPos pos = context.getClickedPos();
++        final Vec3 hit = context.getClickLocation();
++        final double dx = hit.x - (pos.getX() + 0.5D);
++        final double dz = hit.z - (pos.getZ() + 0.5D);
++        if (Math.max(Math.abs(dx), Math.abs(dz)) < SEUIL_CENTRE) {
++            return context.getHorizontalDirection().getOpposite();
++        }
++        // Quadrant par diagonale : l'axe horizontal dominant du vecteur centre->impact donne le côté du dossier.
++        if (Math.abs(dx) >= Math.abs(dz)) {
++            return dx > 0.0D ? Direction.EAST : Direction.WEST;
++        }
++        return dz > 0.0D ? Direction.SOUTH : Direction.NORTH;
 +    }
 +
 +    @Override
