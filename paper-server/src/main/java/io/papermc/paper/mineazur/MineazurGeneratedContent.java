@@ -345,6 +345,13 @@ public final class MineazurGeneratedContent {
             case "BLUE" -> MapColor.COLOR_BLUE;
             case "RED" -> MapColor.COLOR_RED;
             case "DIAMOND" -> MapColor.DIAMOND;
+            // Couleurs de carte des planches vanilla (variantes de bois, 2026-07-18) — calquées sur Blocks.java.
+            case "PODZOL" -> MapColor.PODZOL;                     // spruce
+            case "DIRT" -> MapColor.DIRT;                         // jungle
+            case "ORANGE" -> MapColor.COLOR_ORANGE;               // acacia
+            case "BROWN" -> MapColor.COLOR_BROWN;                 // dark_oak
+            case "TERRACOTTA_WHITE" -> MapColor.TERRACOTTA_WHITE; // cherry
+            case "QUARTZ" -> MapColor.QUARTZ;                     // pale_oak
             default -> throw new IllegalStateException("mapColor non mappé : " + name);
         };
     }

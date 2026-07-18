@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#",
+    "0"
+  ],
+  "key": {
+    "#": "minecraft:jungle_slab",
+    "0": "minecraft:jungle_fence"
+  },
+  "result": {
+    "id": "mineazur:table_jungle",
+    "count": 1
+  }
+}

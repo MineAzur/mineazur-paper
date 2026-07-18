@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "S# ",
+    "#X#",
+    "# #"
+  ],
+  "key": {
+    "#": "minecraft:birch_fence",
+    "X": "minecraft:birch_slab",
+    "S": "mineazur:vernis"
+  },
+  "result": {
+    "id": "mineazur:chair_birch",
+    "count": 1
+  }
+}

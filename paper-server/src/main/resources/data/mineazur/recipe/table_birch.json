@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#",
+    "0"
+  ],
+  "key": {
+    "#": "minecraft:birch_slab",
+    "0": "minecraft:birch_fence"
+  },
+  "result": {
+    "id": "mineazur:table_birch",
+    "count": 1
+  }
+}

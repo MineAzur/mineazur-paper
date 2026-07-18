@@ -68,5 +68,17 @@ shaped("zsandwich", [" X ","&#&"," X "], {"#":M+"mayo","X":V+"bread","&":V+"cook
 shaped("vernis", ["   "," X "," # "], {"#":V+"glass_bottle","X":V+"cactus"}, M+"vernis")
 shaped("shuriken", [" # ","# #"," # "], {"#":V+"iron_ingot"}, M+"shuriken", 16)
 
+# --- variantes de texture (2026-07-18) : recettes calquées sur la FORME des blocs de base, mais sourcées
+#     DIRECTEMENT depuis les matériaux vanilla de l'essence (slab/fence/planks, ou cobblestone/stone/stone_bricks) —
+#     pas d'intermédiaire custom par essence (le chêne, lui, passe par plafond/bois_verni). vernis reste custom
+#     (vernis = essence-neutre). Cf. docs/reference/blocs/TEXTURE_VARIANTS.md.
+WOODS = ["spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "cherry", "pale_oak"]
+for wood in WOODS:
+    shaped(f"table_{wood}", ["#", "0"], {"#": V+f"{wood}_slab", "0": V+f"{wood}_fence"}, M+f"table_{wood}")
+    shaped(f"chair_{wood}", ["S# ", "#X#", "# #"], {"#": V+f"{wood}_fence", "X": V+f"{wood}_slab", "S": M+"vernis"}, M+f"chair_{wood}")
+    shaped(f"toit_{wood}", ["  X", " XX", "XXX"], {"X": V+f"{wood}_planks"}, M+f"toit_{wood}", 4)
+for st in ["cobblestone", "stone", "stone_bricks"]:
+    shaped(f"toit_{st}", ["  X", " XX", "XXX"], {"X": V+st}, M+f"toit_{st}", 4)
+
 n = len(os.listdir(OUT))
 print(f"{n} recettes générées dans data/mineazur/recipe/")

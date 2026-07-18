@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "  X",
+    " XX",
+    "XXX"
+  ],
+  "key": {
+    "X": "minecraft:pale_oak_planks"
+  },
+  "result": {
+    "id": "mineazur:toit_pale_oak",
+    "count": 4
+  }
+}

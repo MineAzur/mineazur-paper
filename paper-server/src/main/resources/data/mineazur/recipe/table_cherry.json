@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#",
+    "0"
+  ],
+  "key": {
+    "#": "minecraft:cherry_slab",
+    "0": "minecraft:cherry_fence"
+  },
+  "result": {
+    "id": "mineazur:table_cherry",
+    "count": 1
+  }
+}

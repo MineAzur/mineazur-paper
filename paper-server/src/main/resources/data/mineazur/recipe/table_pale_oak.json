@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#",
+    "0"
+  ],
+  "key": {
+    "#": "minecraft:pale_oak_slab",
+    "0": "minecraft:pale_oak_fence"
+  },
+  "result": {
+    "id": "mineazur:table_pale_oak",
+    "count": 1
+  }
+}

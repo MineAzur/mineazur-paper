@@ -380,6 +380,412 @@
         "noItem": true,
         "states": "shape:0..46 x facing:4 (PAS d'age : eternel)"
       }
+    },
+    {
+      "_comment": "Variantes de texture (2026-07-18, choix utilisateur) : 8 essences de bois overworld x table/chaise/toit + toit cobblestone/stone/stone_bricks. Ajoutees EN FIN (invariant I1) : nouveaux etats de palette apres les blocs alignes, aucun decalage, aucun remap Phase 2 (blocs NEUFS, jamais sur l'ancienne map). Reutilisent les archetypes table/chair/toit (aucune classe Java neuve) ; seule la texture change, portee par le param 'texture' (lu uniquement par le generateur client gen_geometry.py, ignore du serveur). son/durete/resistance/mapColor CALQUES sur le bloc vanilla correspondant (lus dans Blocks.java), et NON sur les valeurs legacy du chene (divergence assumee). Le chene reste chair/table/toit inchanges.",
+      "legacyId": 215,
+      "name": "table_spruce",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "PODZOL",
+        "texture": "minecraft:block/spruce_planks"
+      }
+    },
+    {
+      "legacyId": 216,
+      "name": "table_birch",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "SAND",
+        "texture": "minecraft:block/birch_planks"
+      }
+    },
+    {
+      "legacyId": 217,
+      "name": "table_jungle",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "DIRT",
+        "texture": "minecraft:block/jungle_planks"
+      }
+    },
+    {
+      "legacyId": 218,
+      "name": "table_acacia",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "ORANGE",
+        "texture": "minecraft:block/acacia_planks"
+      }
+    },
+    {
+      "legacyId": 219,
+      "name": "table_dark_oak",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "BROWN",
+        "texture": "minecraft:block/dark_oak_planks"
+      }
+    },
+    {
+      "legacyId": 220,
+      "name": "table_mangrove",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "RED",
+        "texture": "minecraft:block/mangrove_planks"
+      }
+    },
+    {
+      "legacyId": 221,
+      "name": "table_cherry",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "TERRACOTTA_WHITE",
+        "texture": "minecraft:block/cherry_planks"
+      }
+    },
+    {
+      "legacyId": 222,
+      "name": "table_pale_oak",
+      "archetype": "table",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "QUARTZ",
+        "texture": "minecraft:block/pale_oak_planks"
+      }
+    },
+    {
+      "legacyId": 223,
+      "name": "chair_spruce",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "PODZOL",
+        "texture": "minecraft:block/spruce_planks"
+      }
+    },
+    {
+      "legacyId": 224,
+      "name": "chair_birch",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "SAND",
+        "texture": "minecraft:block/birch_planks"
+      }
+    },
+    {
+      "legacyId": 225,
+      "name": "chair_jungle",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "DIRT",
+        "texture": "minecraft:block/jungle_planks"
+      }
+    },
+    {
+      "legacyId": 226,
+      "name": "chair_acacia",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "ORANGE",
+        "texture": "minecraft:block/acacia_planks"
+      }
+    },
+    {
+      "legacyId": 227,
+      "name": "chair_dark_oak",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "BROWN",
+        "texture": "minecraft:block/dark_oak_planks"
+      }
+    },
+    {
+      "legacyId": 228,
+      "name": "chair_mangrove",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "RED",
+        "texture": "minecraft:block/mangrove_planks"
+      }
+    },
+    {
+      "legacyId": 229,
+      "name": "chair_cherry",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "TERRACOTTA_WHITE",
+        "texture": "minecraft:block/cherry_planks"
+      }
+    },
+    {
+      "legacyId": 230,
+      "name": "chair_pale_oak",
+      "archetype": "chair",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "QUARTZ",
+        "texture": "minecraft:block/pale_oak_planks"
+      }
+    },
+    {
+      "legacyId": 231,
+      "name": "toit_spruce",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "PODZOL",
+        "texture": "minecraft:block/spruce_planks"
+      }
+    },
+    {
+      "legacyId": 232,
+      "name": "toit_birch",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "SAND",
+        "texture": "minecraft:block/birch_planks"
+      }
+    },
+    {
+      "legacyId": 233,
+      "name": "toit_jungle",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "DIRT",
+        "texture": "minecraft:block/jungle_planks"
+      }
+    },
+    {
+      "legacyId": 234,
+      "name": "toit_acacia",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "ORANGE",
+        "texture": "minecraft:block/acacia_planks"
+      }
+    },
+    {
+      "legacyId": 235,
+      "name": "toit_dark_oak",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "BROWN",
+        "texture": "minecraft:block/dark_oak_planks"
+      }
+    },
+    {
+      "legacyId": 236,
+      "name": "toit_mangrove",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "RED",
+        "texture": "minecraft:block/mangrove_planks"
+      }
+    },
+    {
+      "legacyId": 237,
+      "name": "toit_cherry",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "TERRACOTTA_WHITE",
+        "texture": "minecraft:block/cherry_planks"
+      }
+    },
+    {
+      "legacyId": 238,
+      "name": "toit_pale_oak",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 3.0,
+        "sound": "WOOD",
+        "mapColor": "QUARTZ",
+        "texture": "minecraft:block/pale_oak_planks"
+      }
+    },
+    {
+      "legacyId": 239,
+      "name": "toit_cobblestone",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 2.0,
+        "resistance": 6.0,
+        "sound": "STONE",
+        "mapColor": "STONE",
+        "texture": "minecraft:block/cobblestone"
+      }
+    },
+    {
+      "legacyId": 240,
+      "name": "toit_stone",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 1.5,
+        "resistance": 6.0,
+        "sound": "STONE",
+        "mapColor": "STONE",
+        "texture": "minecraft:block/stone"
+      }
+    },
+    {
+      "legacyId": 241,
+      "name": "toit_stone_bricks",
+      "archetype": "toit",
+      "params": {
+        "directional": true,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 1.5,
+        "resistance": 6.0,
+        "sound": "STONE",
+        "mapColor": "STONE",
+        "texture": "minecraft:block/stone_bricks"
+      }
     }
   ]
 }
