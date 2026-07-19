@@ -23830,7 +23830,7 @@ index 9d9fa99ff7694a3356421df711c7b1443047b057..c79206e0eb455081f63cf4de2c974136
      }
  
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 9f2d139ceeb7235295e538a8ef976bc3b3ae60c5..bfa6eaa066fc885ffcdbcb67beaf2b332abbf1ce 100644
+index 982144388f28984030e04885a7b84843b557d1ec..80447dd6a9e62778fb5a92c8ac310a233d3fd7b5 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -191,7 +191,7 @@ import net.minecraft.world.scores.ScoreboardSaveData;
@@ -24049,7 +24049,7 @@ index 9f2d139ceeb7235295e538a8ef976bc3b3ae60c5..bfa6eaa066fc885ffcdbcb67beaf2b33
          profiler.pop(); // moonrise:run_all_chunk
          profiler.pop(); // moonrise:run_all_tasks
  
-@@ -1418,6 +1529,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1419,6 +1530,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
  
      private boolean pollTaskInternal() {
          if (super.pollTask()) {
@@ -24057,7 +24057,7 @@ index 9f2d139ceeb7235295e538a8ef976bc3b3ae60c5..bfa6eaa066fc885ffcdbcb67beaf2b33
              return true;
          }
  
-@@ -1559,6 +1671,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1560,6 +1672,13 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          // Paper - improve tick loop - moved into runAllTasksAtTickStart
          this.runAllTasksAtTickStart(); // Paper - improve tick loop
          this.tickServer(sprinting ? () -> false : this::haveTime);
@@ -24071,7 +24071,7 @@ index 9f2d139ceeb7235295e538a8ef976bc3b3ae60c5..bfa6eaa066fc885ffcdbcb67beaf2b33
          this.tickFrame.end();
          this.recordEndOfTick(); // Paper - improve tick loop
          profiler.pop();
-@@ -2606,6 +2725,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -2607,6 +2726,12 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
      }
  
@@ -27769,7 +27769,7 @@ index d2eac2935a16a9127958b94414668ce408880319..0fabe7fe4d302695505bed2cef4ce580
              "Server weather",
              () -> String.format(
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index 020b63f9d356aadf0bdaf2e34067d15bacd0177a..f35f88da81abb14b393d6fce04054ee40e8d8397 100644
+index 15b3d0da4c06220bb7f5706ec61acd97343446f4..05662974193744ed9e82d669f1379ba1eb399acc 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -202,7 +202,7 @@ import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -29883,7 +29883,7 @@ index cf03617840bf13c6045526eba14f71e0647ffec2..263c64f340417c0b49691a350b4bec59
          this(setDirty, true, ImmutableList.of());
      }
 diff --git a/net/minecraft/world/entity/decoration/ArmorStand.java b/net/minecraft/world/entity/decoration/ArmorStand.java
-index 758b667530ba1e14e9a56fbe609a6438439dd8f2..f42fd10847a1dfbcbb2790aa90da4a49585e25a8 100644
+index 00ede5d72e67228e1471ba9d1fbb21665d698833..2282f17728f32f1a7a7d7a618c9eedfd493e7cbc 100644
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
 @@ -206,7 +206,7 @@ public class ArmorStand extends LivingEntity {

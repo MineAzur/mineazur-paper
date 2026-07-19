@@ -5,7 +5,7 @@ Subject: [PATCH] Incremental chunk and player saving
 
 
 diff --git a/net/minecraft/server/MinecraftServer.java b/net/minecraft/server/MinecraftServer.java
-index 7f0e4c5608496ee3591b0bc131753e1f08399e00..83c1a76b949e7b1dada2153d06f6803a4195f780 100644
+index eace270bc40c219fc830e50f381adceff1894ef2..914ae75603c94d506882825cc311a5571ea77263 100644
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
 @@ -961,7 +961,7 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
@@ -58,7 +58,7 @@ index 7f0e4c5608496ee3591b0bc131753e1f08399e00..83c1a76b949e7b1dada2153d06f6803a
              boolean result = this.saveAllChunks(silent, flush, force);
              this.warnOnLowDiskSpace();
              return result;
-@@ -1642,9 +1650,31 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
+@@ -1643,9 +1651,31 @@ public abstract class MinecraftServer extends ReentrantBlockableEventLoop<TickTa
          }
  
          this.ticksUntilAutosave--;
@@ -113,7 +113,7 @@ index 965d9f515d0410df3395d07c6cf5e6349c75c923..49f688e3536fe4fdb052bbfeeec36b5b
      public void save(final @Nullable ProgressListener progressListener, final boolean flush, final boolean noSave) {
          // Paper start - add close param
 diff --git a/net/minecraft/server/level/ServerPlayer.java b/net/minecraft/server/level/ServerPlayer.java
-index f35f88da81abb14b393d6fce04054ee40e8d8397..ec4ad547c2d09f7313390ac6b8a91809baab5f2e 100644
+index 05662974193744ed9e82d669f1379ba1eb399acc..6c8bc1d62bff9b8d682006769e0bf8bfb3f09b28 100644
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
 @@ -204,6 +204,7 @@ import org.slf4j.Logger;

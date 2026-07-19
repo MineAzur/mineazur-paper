@@ -7,6 +7,8 @@ import java.nio.file.Files;
 
 import org.bukkit.configuration.file.YamlConfiguration;
 
+import com.mojang.logging.LogUtils;
+
 /**
  * MineAzur — configuration du <b>gate serveur</b> (addendum Phase 1), lue dans un fichier DÉDIÉ
  * {@code mineazur.yml} à la RACINE du serveur (répertoire de travail). Contrôle si le serveur exige le mod
@@ -28,15 +30,18 @@ public final class MineazurConfig {
     private final int timeoutTicks;
     private final String kickNoMod;
     private final String kickBadVersion;
+    private final String serverVersion;
 
     private MineazurConfig(final boolean requireMod, final boolean enforceVersion, final String requiredVersion,
-                          final int timeoutTicks, final String kickNoMod, final String kickBadVersion) {
+                          final int timeoutTicks, final String kickNoMod, final String kickBadVersion,
+                          final String serverVersion) {
         this.requireMod = requireMod;
         this.enforceVersion = enforceVersion;
         this.requiredVersion = requiredVersion;
         this.timeoutTicks = timeoutTicks;
         this.kickNoMod = kickNoMod;
         this.kickBadVersion = kickBadVersion;
+        this.serverVersion = serverVersion;
     }
 
     public static MineazurConfig get() {
@@ -75,6 +80,13 @@ public final class MineazurConfig {
         # Messages de refus (%expected% = version attendue).
         kick-no-mod: "Ce serveur nécessite le mod MineAzur. Utilise le launcher MineAzur pour rejoindre."
         kick-bad-version: "Version du mod MineAzur incompatible (attendu %expected%). Mets à jour via le launcher MineAzur."
+
+        # Version du SERVEUR MineAzur (fork + plugins maison) — distincte de celle du mod ci-dessus.
+        # SOURCE DE VÉRITÉ : le titre « ## x.y.z » le plus haut de docs/CHANGELOG_SERVEUR.md (CLAUDE.md règle 6).
+        # Les plugins maison en héritent AUTOMATIQUEMENT au build ; ce champ-ci est la copie que le serveur
+        # annonce au démarrage, synchronisée par docs/scripts/sync_server_version.py.
+        # Une valeur 0.0.0-dev signifie « jamais synchronisée » (et non « version 0 »).
+        server-version: "0.1.0"
         """;
 
     private static MineazurConfig load() {
@@ -87,7 +99,7 @@ public final class MineazurConfig {
             }
         }
         final YamlConfiguration c = f.isFile() ? YamlConfiguration.loadConfiguration(f) : new YamlConfiguration();
-        return new MineazurConfig(
+        final MineazurConfig cfg = new MineazurConfig(
                 c.getBoolean("require-mod", true),
                 c.getBoolean("enforce-version", true),
                 c.getString("required-mod-version", "0.6.23"),
@@ -95,7 +107,20 @@ public final class MineazurConfig {
                 c.getString("kick-no-mod",
                         "Ce serveur nécessite le mod MineAzur. Utilise le launcher MineAzur pour rejoindre."),
                 c.getString("kick-bad-version",
-                        "Version du mod MineAzur incompatible (attendu %expected%). Mets à jour via le launcher MineAzur."));
+                        "Version du mod MineAzur incompatible (attendu %expected%). Mets à jour via le launcher MineAzur."),
+                c.getString("server-version", "0.0.0-dev"));
+        return cfg;
+    }
+
+    /**
+     * Annonce la version du serveur dans la console, appelé une fois au démarrage (juste après le message
+     * « Done » de {@code MinecraftServer}). Ne peut PAS se faire dans {@link #load()} : le singleton est
+     * chargé paresseusement, donc la ligne ne sortirait qu'à la première connexion d'un joueur.
+     */
+    public static void announce() {
+        final MineazurConfig cfg = get();
+        LogUtils.getLogger().info("MineAzur — serveur v{} (mod client requis : {})",
+                cfg.serverVersion, cfg.requiredVersion);
     }
 
     public boolean requireMod() {
@@ -104,6 +129,15 @@ public final class MineazurConfig {
 
     public boolean enforceVersion() {
         return this.enforceVersion;
+    }
+
+    /**
+     * Version du SERVEUR MineAzur (fork + plugins maison), annoncée au démarrage. Distincte de
+     * {@link #requiredVersion()} (le mod client). Source de vérité : docs/CHANGELOG_SERVEUR.md ;
+     * {@code 0.0.0-dev} signale une config jamais synchronisée.
+     */
+    public String serverVersion() {
+        return this.serverVersion;
     }
 
     public String requiredVersion() {
