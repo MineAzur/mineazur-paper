@@ -1,0 +1,39 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "mineazur:papier_renforce",
+    "minecraft:glow_ink_sac"
+  ],
+  "result": {
+    "id": "minecraft:book",
+    "count": 1,
+    "components": {
+      "minecraft:custom_data": {
+        "mineazur-jobs:grimoire": 1
+      },
+      "minecraft:enchantment_glint_override": true,
+      "minecraft:custom_name": {
+        "text": "Grimoire de maîtrise",
+        "color": "light_purple",
+        "italic": false
+      },
+      "minecraft:lore": [
+        {
+          "text": "Vierge.",
+          "color": "gray",
+          "italic": false
+        },
+        {
+          "text": "Clic droit en ayant un métier actif",
+          "color": "gray",
+          "italic": false
+        },
+        {
+          "text": "pour y sauvegarder ta progression.",
+          "color": "gray",
+          "italic": false
+        }
+      ]
+    }
+  }
+}

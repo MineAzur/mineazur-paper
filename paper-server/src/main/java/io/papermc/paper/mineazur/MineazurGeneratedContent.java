@@ -270,6 +270,8 @@ public final class MineazurGeneratedContent {
                 }
                 case "sword" -> props.sword(OBSIDIAN, 3.0F, -2.4F);
                 case "pickaxe" -> props.pickaxe(OBSIDIAN, 1.0F, -2.8F);
+                // Marteau : outil d'obsidienne lourd — dégâts ENTRE pioche (1.0) et épée (3.0), swing plus lent.
+                case "hammer" -> props.pickaxe(OBSIDIAN, 2.0F, -3.2F);
                 case "axe" -> props.axe(OBSIDIAN, 5.0F, -3.0F);
                 case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);

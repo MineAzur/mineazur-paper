@@ -786,6 +786,230 @@
         "mapColor": "STONE",
         "texture": "minecraft:block/stone_bricks"
       }
+    },
+    {
+      "legacyId": 242,
+      "name": "lanterne_white",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 243,
+      "name": "lanterne_orange",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 244,
+      "name": "lanterne_magenta",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 245,
+      "name": "lanterne_light_blue",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 246,
+      "name": "lanterne_yellow",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 247,
+      "name": "lanterne_lime",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 248,
+      "name": "lanterne_pink",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 249,
+      "name": "lanterne_gray",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 250,
+      "name": "lanterne_light_gray",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 251,
+      "name": "lanterne_cyan",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 252,
+      "name": "lanterne_purple",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 253,
+      "name": "lanterne_blue",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 254,
+      "name": "lanterne_brown",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 255,
+      "name": "lanterne_green",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 256,
+      "name": "lanterne_red",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
+    },
+    {
+      "legacyId": 257,
+      "name": "lanterne_black",
+      "archetype": "simple",
+      "params": {
+        "directional": false,
+        "occlusion": true,
+        "light": 15,
+        "hardness": 0.75,
+        "resistance": 30.0,
+        "sound": "GLASS",
+        "mapColor": "SAND"
+      }
     }
   ]
 }

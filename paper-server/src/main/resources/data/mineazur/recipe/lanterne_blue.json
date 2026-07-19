@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    "mineazur:lanterne",
+    "minecraft:blue_dye"
+  ],
+  "result": {
+    "id": "mineazur:lanterne_blue",
+    "count": 1
+  }
+}

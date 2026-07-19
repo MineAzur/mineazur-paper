@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###",
+    "#@#",
+    "###"
+  ],
+  "key": {
+    "#": "minecraft:gold_block",
+    "@": "minecraft:diamond"
+  },
+  "result": {
+    "id": "mineazur:bague",
+    "count": 1
+  }
+}

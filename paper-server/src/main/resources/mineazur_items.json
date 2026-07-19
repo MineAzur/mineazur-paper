@@ -132,6 +132,30 @@
       "name": "smoking",
       "archetype": "cosmetic",
       "slot": "chestplate"
+    },
+    {
+      "name": "eguille",
+      "archetype": "plain"
+    },
+    {
+      "name": "hammer",
+      "archetype": "hammer"
+    },
+    {
+      "name": "bague",
+      "archetype": "plain"
+    },
+    {
+      "name": "papier_renforce",
+      "archetype": "plain"
+    },
+    {
+      "name": "diamond_dust",
+      "archetype": "plain"
+    },
+    {
+      "name": "enderspice",
+      "archetype": "plain"
     }
   ]
 }

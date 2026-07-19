@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "###",
+    "@$@",
+    "$%$"
+  ],
+  "key": {
+    "#": "minecraft:paper",
+    "$": "minecraft:blaze_rod",
+    "@": "minecraft:string",
+    "%": "minecraft:bone"
+  },
+  "result": {
+    "id": "mineazur:papier_renforce",
+    "count": 1
+  }
+}
