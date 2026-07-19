@@ -85,6 +85,11 @@ public final class MineazurRegistrySync {
         buf.writeVarInt(customItems);
         buf.writeBytes(itemsBuf);
 
+        // Version du SERVEUR (fork + plugins maison), pour que le client puisse l'afficher (écran F3).
+        // Ajoutée EN FIN de trame : le gate `required-mod-version` verrouillant déjà client et serveur sur la
+        // même version, il ne peut pas y avoir d'ancien client en face — et la lecture côté mod est défensive.
+        buf.writeUtf(MineazurConfig.get().serverVersion());
+
         final byte[] data = new byte[buf.readableBytes()];
         buf.readBytes(data);
         return new ClientboundCustomPayloadPacket(new DiscardedPayload(CHANNEL, data));
