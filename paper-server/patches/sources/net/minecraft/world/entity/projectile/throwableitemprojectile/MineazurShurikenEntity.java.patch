@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/MineazurShurikenEntity.java
-@@ -1,0 +_,40 @@
+@@ -1,0 +_,83 @@
 +package net.minecraft.world.entity.projectile.throwableitemprojectile;
 +
 +import net.minecraft.core.registries.BuiltInRegistries;
@@ -11,7 +11,11 @@
 +import net.minecraft.world.item.Item;
 +import net.minecraft.world.item.Items;
 +import net.minecraft.world.level.Level;
++import net.minecraft.world.level.gameevent.GameEvent;
++import net.minecraft.world.phys.BlockHitResult;
 +import net.minecraft.world.phys.EntityHitResult;
++import net.minecraft.world.phys.HitResult;
++import net.minecraft.world.phys.Vec3;
 +
 +// MineAzur — shuriken (portage de net.minecraft.server.EntityShuriken du jar 2011 patché).
 +// Étend Snowball pour que la couche Bukkit le wrappe comme un CraftSnowball (les entités NMS custom ne sont
@@ -20,6 +24,12 @@
 +public class MineazurShurikenEntity extends Snowball {
 +    // Renseigné par le générateur (MineazurGeneratedContent.registerEntities) au chargement.
 +    public static EntityType<MineazurShurikenEntity> TYPE;
++
++    /** Durée de vie d'un shuriken planté, en ticks (60 s — comme une flèche fichée). */
++    private static final int PLANTED_LIFETIME = 20 * 60;
++
++    private boolean planted;
++    private int plantedTicks;
 +
 +    public MineazurShurikenEntity(final EntityType<? extends MineazurShurikenEntity> type, final Level level) {
 +        super(type, level);
@@ -39,5 +49,38 @@
 +        // d'épée en fer, jugé trop). Le bonus +3 vs Blaze (hérité de 2011) est conservé au-dessus de la base -> 8.
 +        final int damage = entity instanceof Blaze ? 8 : 5;
 +        entity.hurt(this.damageSources().thrown(this, this.getOwner()), damage);
++    }
++
++    /**
++     * Le shuriken se <b>plante</b> dans le décor au lieu de disparaître (choix utilisateur 2026-07-20 : « je
++     * veux les voir sans forcément les ramasser »). Il n'est PAS ramassable — c'est purement visuel.
++     *
++     * <p>{@code Snowball.onHit} détruit le projectile ; on ne le laisse donc agir que pour les impacts sur
++     * <b>entité</b> (sinon le shuriken resterait figé en l'air à l'endroit du mob). Pour un impact sur
++     * <b>bloc</b>, on rejoue le nécessaire du dispatch puis on fige l'entité.
++     */
++    @Override
++    protected void onHit(final HitResult hitResult) {
++        if (hitResult.getType() != HitResult.Type.BLOCK) {
++            super.onHit(hitResult); // entité : dégâts + destruction (comportement Snowball)
++            return;
++        }
++        final BlockHitResult blockHit = (BlockHitResult) hitResult;
++        this.onHitBlock(blockHit);
++        this.level().gameEvent(GameEvent.PROJECTILE_LAND, hitResult.getLocation(), GameEvent.Context.of(this, null));
++        this.setDeltaMovement(Vec3.ZERO);
++        this.setNoGravity(true);
++        this.setPos(hitResult.getLocation());
++        this.planted = true;
++    }
++
++    @Override
++    public void tick() {
++        super.tick();
++        // Un shuriken planté est une entité de plus qui vit : sans limite, une arme empilable par 32 en
++        // laisserait des centaines derrière elle. On les retire au bout de PLANTED_LIFETIME.
++        if (this.planted && !this.level().isClientSide() && ++this.plantedTicks > PLANTED_LIFETIME) {
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++        }
 +    }
 +}
