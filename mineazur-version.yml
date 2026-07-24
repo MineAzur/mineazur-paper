@@ -1,0 +1,9 @@
+# MineAzur — version du SERVEUR (fork Paper + plugins maison).
+#
+# SOURCE DE VÉRITÉ : docs/CHANGELOG_SERVEUR.md (dernier titre « ## x.y.z »).
+# Fichier COMMITÉ, versionné dans le repo Paper pour que la version soit visible et tracée dans les diffs
+# (contrairement à run/mineazur.yml, gitignoré, et au défaut enfoui dans MineazurConfig.java).
+#
+# ⚠️ Synchronisé par docs/scripts/sync_server_version.py — NE PAS éditer à la main : bumper le changelog puis
+# relancer le script (cf. CLAUDE.md règle 6 et skill mineazur-publish §D).
+server-version: "0.1.2"
