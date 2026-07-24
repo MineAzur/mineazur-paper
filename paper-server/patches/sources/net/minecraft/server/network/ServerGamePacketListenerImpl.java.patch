@@ -1257,10 +1257,11 @@
                                      this.player.swing(hand, true);
                                  }
  
-@@ -1387,6 +_,15 @@
+@@ -1387,20 +_,24 @@
                                      && success.swingSource() == InteractionResult.SwingSource.SERVER) {
                                      this.player.swing(hand, true);
                                  }
+-                            } else {
 +                            // Paper start - Fix inventory desync; MC-99075
 +                            // From level.mayInteract(this.player, pos)
 +                            } else if (this.server.isUnderSpawnProtection(level, pos, player)) {
@@ -1270,10 +1271,10 @@
 +                                    this.player.containerMenu.forceHeldSlot(hand);
 +                                }
 +                            // Paper end - Fix inventory desync
-                             } else {
++                            } else if (this.awaitingPositionFromClient == null) { // MineAzur — ne pas envoyer le message trompeur « build.tooHigh » quand une position est en attente d'ack (ex. joueur qui vient de s'asseoir sur une chaise → startRiding le repositionne). Cf. ChairBlock / docs.
                                  this.player.sendBuildLimitMessage(true, maxY);
                              }
-@@ -1394,13 +_,8 @@
+ 
                              this.send(new ClientboundBlockUpdatePacket(level, pos));
                              this.send(new ClientboundBlockUpdatePacket(level, pos.relative(direction)));
                          }

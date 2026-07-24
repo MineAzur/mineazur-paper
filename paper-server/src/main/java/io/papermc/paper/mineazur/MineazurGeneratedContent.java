@@ -277,7 +277,10 @@ public final class MineazurGeneratedContent {
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
                 case "armor" -> props.humanoidArmor(OBSIDIENNE_ARMOR, armorType(s.slot()));
                 case "cosmetic" -> props.humanoidArmor(COSTUME_ARMOR, armorType(s.slot()));
-                default -> { /* plain / thrower */ }
+                // Grimoire de maîtrise : non empilable (chaque exemplaire porte une progression unique en PDC).
+                // Le glint est posé par instance (recette de datapack + plugin), pas baké sur l'item.
+                case "grimoire" -> props.stacksTo(1);
+                default -> { /* plain / thrower / grimoire_debris */ }
             }
             props.setId(key);
             final Item item = "thrower".equals(s.archetype()) ? new ShurikenItem(props) : new Item(props);

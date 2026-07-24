@@ -156,6 +156,14 @@
     {
       "name": "enderspice",
       "archetype": "plain"
+    },
+    {
+      "name": "grimoire",
+      "archetype": "grimoire"
+    },
+    {
+      "name": "grimoire_debris",
+      "archetype": "plain"
     }
   ]
 }

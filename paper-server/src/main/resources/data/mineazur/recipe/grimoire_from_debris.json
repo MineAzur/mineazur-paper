@@ -1,7 +1,7 @@
 {
   "type": "minecraft:crafting_shapeless",
   "ingredients": [
-    "mineazur:papier_renforce",
+    "mineazur:grimoire_debris",
     "minecraft:glow_ink_sac"
   ],
 "result": {
