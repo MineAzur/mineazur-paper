@@ -92,31 +92,36 @@
       "name": "hot_zehir_chili",
       "archetype": "food",
       "nutrition": 6,
-      "saturation": 0.6
+      "saturation": 0.6,
+      "effect": { "id": "strength", "seconds": 120, "amplifier": 0 }
     },
     {
       "name": "dragon_omelette",
       "archetype": "food",
       "nutrition": 8,
-      "saturation": 0.8
+      "saturation": 0.8,
+      "effect": { "id": "jump_boost", "seconds": 90, "amplifier": 0 }
     },
     {
       "name": "sebcake",
       "archetype": "food",
       "nutrition": 5,
-      "saturation": 0.4
+      "saturation": 0.4,
+      "effect": { "id": "speed", "seconds": 45, "amplifier": 0 }
     },
     {
       "name": "stickoburger",
       "archetype": "food",
       "nutrition": 8,
-      "saturation": 0.8
+      "saturation": 0.8,
+      "effect": { "id": "haste", "seconds": 75, "amplifier": 0 }
     },
     {
       "name": "maki_girakanzu",
       "archetype": "food",
       "nutrition": 6,
-      "saturation": 0.6
+      "saturation": 0.6,
+      "effect": { "id": "fire_resistance", "seconds": 60, "amplifier": 0 }
     },
     {
       "name": "soulier",

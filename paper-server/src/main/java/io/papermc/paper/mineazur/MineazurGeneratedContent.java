@@ -53,6 +53,8 @@ import net.minecraft.world.level.block.TableBlock;
 import net.minecraft.world.level.block.ToitBlock;
 import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
+import net.minecraft.core.Holder;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.food.FoodProperties;
@@ -262,7 +264,10 @@ public final class MineazurGeneratedContent {
     }
 
     // `material` ne concerne que l'archétype `armor` : "obsidienne" (défaut historique, champ absent) ou "etoffe".
-    private record ItemSpec(String name, String archetype, int nutrition, float saturation, String slot, String material) {}
+    // `effectId`/`effectSeconds`/`effectAmplifier` ne concernent que `food` : effet appliqué À LA CONSOMMATION
+    // (null = plat sans effet). Le gating reste au CRAFT — n'importe qui peut manger un plat de tavernier.
+    private record ItemSpec(String name, String archetype, int nutrition, float saturation, String slot, String material,
+                            String effectId, int effectSeconds, int effectAmplifier) {}
 
     private static List<ItemSpec> itemSpecs() {
         final List<ItemSpec> list = new ArrayList<>();
@@ -279,7 +284,10 @@ public final class MineazurGeneratedContent {
                     it.has("nutrition") ? it.get("nutrition").getAsInt() : 0,
                     it.has("saturation") ? it.get("saturation").getAsFloat() : 0.0F,
                     it.has("slot") ? it.get("slot").getAsString() : null,
-                    it.has("material") ? it.get("material").getAsString() : "obsidienne"));
+                    it.has("material") ? it.get("material").getAsString() : "obsidienne",
+                    it.has("effect") ? it.getAsJsonObject("effect").get("id").getAsString() : null,
+                    it.has("effect") ? it.getAsJsonObject("effect").get("seconds").getAsInt() : 0,
+                    it.has("effect") ? it.getAsJsonObject("effect").get("amplifier").getAsInt() : 0));
             }
         } catch (final Exception e) {
             throw new RuntimeException("MineAzur : lecture de mineazur_items.json échouée", e);
@@ -325,6 +333,8 @@ public final class MineazurGeneratedContent {
                 case "food" -> {
                     if ("biere".equals(s.name())) {
                         configureBiere(props, s);
+                    } else if (s.effectId() != null) {
+                        configurePlatAEffet(props, s);
                     } else {
                         props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
                     }
@@ -378,6 +388,40 @@ public final class MineazurGeneratedContent {
     // se transforme en chope vide. L'original appliquait l'effet 9 (Nausée) + l'effet CUSTOM 20 « potion.drunk »
     // (cosmétique, SANS dégâts) — et NON le Wither vanilla. Le port traduisait id 20 → MobEffects.WITHER (ampli 25),
     // ce qui tuait le joueur : bug. On restitue le gag « bourré » par la seule Nausée (le wobble d'écran).
+    /**
+     * Plat de tavernier qui accorde un effet <b>à la consommation</b> (les 5 plats Zehir, cf. table tavernier de
+     * {@code METIERS_DESIGN.md} §4 — durée croissante avec le niveau de déblocage : 45 s à N8, 120 s à N16).
+     *
+     * <p>⚠️ Ce n'est PAS une restauration : les plats de Zehir (2012) n'avaient aucun effet. C'est la montée en
+     * gamme décidée le 2026-07-19, dont les durées ont été arbitrées le 2026-07-25.
+     *
+     * <p>L'effet est un composant de l'item, donc **miroité côté mod** : c'est le client qui affiche l'infobulle
+     * « À la consommation », et un défaut de composant par défaut entre les deux côtés se voit à l'écran.
+     * Le gating, lui, reste au CRAFT : n'importe qui peut manger un plat qu'on lui donne.
+     */
+    private static void configurePlatAEffet(final Item.Properties props, final ItemSpec s) {
+        final FoodProperties food = new FoodProperties.Builder()
+            .nutrition(s.nutrition()).saturationModifier(s.saturation()).build();
+        final Consumable consumable = Consumables.defaultFood()
+            .onConsume(new ApplyStatusEffectsConsumeEffect(List.of(
+                new MobEffectInstance(effet(s.effectId()), s.effectSeconds() * 20, s.effectAmplifier()))))
+            .build();
+        props.food(food, consumable);
+    }
+
+    // Effets utilisés par les plats. Volontairement une liste FERMÉE : un identifiant inconnu doit exploser au
+    // boot (contenu mal saisi) plutôt que produire silencieusement un plat sans effet.
+    private static Holder<MobEffect> effet(final String id) {
+        return switch (id) {
+            case "speed" -> MobEffects.SPEED;
+            case "haste" -> MobEffects.HASTE;
+            case "strength" -> MobEffects.STRENGTH;
+            case "jump_boost" -> MobEffects.JUMP_BOOST;
+            case "fire_resistance" -> MobEffects.FIRE_RESISTANCE;
+            default -> throw new IllegalStateException("effet de nourriture inconnu : " + id);
+        };
+    }
+
     private static void configureBiere(final Item.Properties props, final ItemSpec s) {
         final FoodProperties food = new FoodProperties.Builder()
             .nutrition(s.nutrition()).saturationModifier(s.saturation()).alwaysEdible().build();
