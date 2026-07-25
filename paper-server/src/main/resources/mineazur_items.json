@@ -164,6 +164,34 @@
     {
       "name": "grimoire_debris",
       "archetype": "plain"
+    },
+    {
+      "name": "tissu",
+      "archetype": "plain"
+    },
+    {
+      "name": "etoffe_helmet",
+      "archetype": "armor",
+      "material": "etoffe",
+      "slot": "helmet"
+    },
+    {
+      "name": "etoffe_chestplate",
+      "archetype": "armor",
+      "material": "etoffe",
+      "slot": "chestplate"
+    },
+    {
+      "name": "etoffe_leggings",
+      "archetype": "armor",
+      "material": "etoffe",
+      "slot": "leggings"
+    },
+    {
+      "name": "etoffe_boots",
+      "archetype": "armor",
+      "material": "etoffe",
+      "slot": "boots"
     }
   ]
 }

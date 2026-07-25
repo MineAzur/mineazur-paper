@@ -36,8 +36,11 @@ import net.minecraft.world.item.ToolMaterial;
 import net.minecraft.world.item.equipment.ArmorMaterial;
 import net.minecraft.world.item.equipment.ArmorType;
 import net.minecraft.world.item.equipment.EquipmentAssets;
+import net.minecraft.world.level.block.AbstractFurnaceBlock;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.ChairBlock;
+import net.minecraft.world.level.block.MetierATisserBlock;
 import net.minecraft.world.level.block.DiamondLampBlock;
 import net.minecraft.world.level.block.MineazurHorizontalBlock;
 import net.minecraft.world.level.block.PlafondBlock;
@@ -94,6 +97,17 @@ public final class MineazurGeneratedContent {
         new EnumMap<>(Map.of(ArmorType.BOOTS, 0, ArmorType.LEGGINGS, 0, ArmorType.CHESTPLATE, 0, ArmorType.HELMET, 0, ArmorType.BODY, 0)),
         1, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, COSTUME_REPAIR, // ench=1 (>0 requis : Enchantable interdit 0)
         ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "costume")));
+
+    // Matériau de l'ARMURE D'ÉTOFFE (tisserand, contenu inventé validé le 2026-07-25) : « un cran au-dessus du
+    // cuir » — protection totale 10 (cuir 7, maille 12, fer 15), durabilité x9 (cuir x5), enchantabilité 15
+    // (comme le cuir : le tissu prend bien l'enchantement). Réparable au tissu (tag mineazur:etoffe_repair).
+    // assetId mineazur:etoffe -> calques equipment (on réutilise la texture de cuir vanilla, teintée).
+    private static final TagKey<Item> ETOFFE_REPAIR = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("mineazur", "etoffe_repair"));
+    private static final ArmorMaterial ETOFFE_ARMOR = new ArmorMaterial(
+        9,
+        new EnumMap<>(Map.of(ArmorType.BOOTS, 1, ArmorType.LEGGINGS, 3, ArmorType.CHESTPLATE, 4, ArmorType.HELMET, 2, ArmorType.BODY, 5)),
+        15, SoundEvents.ARMOR_EQUIP_LEATHER, 0.0F, 0.0F, ETOFFE_REPAIR,
+        ResourceKey.create(EquipmentAssets.ROOT_ID, Identifier.fromNamespaceAndPath("mineazur", "etoffe")));
 
     private record Spec(String name, String archetype, boolean directional, boolean occlusion, int light,
                         float hardness, float resistance, String sound, String mapColor, String base,
@@ -162,7 +176,11 @@ public final class MineazurGeneratedContent {
                     .sound(soundType(s.sound()));
                 if (s.light() > 0) {
                     final int light = s.light();
-                    props.lightLevel(state -> light);
+                    // Archétype `furnace` : la lumière ne vaut que MACHINE EN MARCHE (état LIT), comme le four
+                    // vanilla — sinon un métier à tisser vide éclairerait en permanence. Miroir côté mod.
+                    props.lightLevel("furnace".equals(s.archetype())
+                        ? state -> state.getValue(AbstractFurnaceBlock.LIT) ? light : 0
+                        : state -> light);
                 }
                 if (!s.occlusion()) {
                     props.noOcclusion();
@@ -198,11 +216,53 @@ public final class MineazurGeneratedContent {
             // `toit` a ABSORBÉ `coin_de_toit` (210, retiré le 2026-07-16) : son coin est devenu la forme OUTER.
             case "toit" -> new ToitBlock(props);
             case "tombe" -> new TombeBlock(props);
+            // Machine du tisserand : four déguisé (cf. l'en-tête de MetierATisserBlock). Le bloc doit AUSSI être
+            // ajouté aux validBlocks de BlockEntityType.FURNACE (patch dans BlockEntityType.java) sinon sa
+            // BlockEntity est refusée à la pose et le bloc reste un décor inerte.
+            case "furnace" -> new MetierATisserBlock(props);
             default -> throw new IllegalStateException("archétype non supporté : " + s.archetype());
         };
     }
 
-    private record ItemSpec(String name, String archetype, int nutrition, float saturation, String slot) {}
+    /**
+     * Blocs de l'archétype {@code furnace} — appelé depuis {@code BlockEntityType.java} pour les ajouter aux
+     * {@code validBlocks} du type FURNACE, ce qui leur donne une vraie {@code FurnaceBlockEntity} sans créer
+     * d'entrée de registre (cf. l'en-tête de {@code MetierATisserBlock}). Côté mod, l'équivalent est
+     * {@code BlockEntityTypeAddBlocksEvent}.
+     *
+     * <p>⚠️ Appelé pendant l'init statique de {@code BlockEntityType}, donc APRÈS celle de {@code Blocks} (la
+     * même ligne d'appel lit {@code Blocks.FURNACE}) : nos blocs sont déjà dans le registre. Si un jour ce
+     * n'était plus vrai, l'exception ci-dessous le dirait franchement au lieu d'enregistrer un type mutilé.
+     */
+    public static Block[] furnaceLikeBlocksWith(final Block... vanilla) {
+        final List<Block> out = new ArrayList<>(List.of(vanilla));
+        for (final Spec s : specs()) {
+            if (!"furnace".equals(s.archetype())) {
+                continue;
+            }
+            final Block block = BuiltInRegistries.BLOCK.getValue(Identifier.fromNamespaceAndPath(NS, s.name()));
+            if (block == null || block == Blocks.AIR) {
+                throw new IllegalStateException("MineAzur : bloc « " + s.name()
+                    + " » absent du registre au moment d'initialiser BlockEntityType (ordre d'init cassé)");
+            }
+            out.add(block);
+        }
+        return out.toArray(new Block[0]);
+    }
+
+    /**
+     * Item custom par nom court, ou {@code null} s'il n'est pas (encore) enregistré. Sert aux patches vanilla qui
+     * doivent citer un de nos items dans une table statique — aujourd'hui {@code FuelValues} (l'aiguille du
+     * forgeron est le combustible du métier à tisser). Tolérant au {@code null} par construction : ces tables
+     * sont bâties très tôt, et un contenu absent doit dégrader (pas de combustible) et non planter le boot.
+     */
+    public static @org.jspecify.annotations.Nullable Item customItem(final String name) {
+        final Item item = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(NS, name));
+        return item == null || item == Items.AIR ? null : item;
+    }
+
+    // `material` ne concerne que l'archétype `armor` : "obsidienne" (défaut historique, champ absent) ou "etoffe".
+    private record ItemSpec(String name, String archetype, int nutrition, float saturation, String slot, String material) {}
 
     private static List<ItemSpec> itemSpecs() {
         final List<ItemSpec> list = new ArrayList<>();
@@ -218,7 +278,8 @@ public final class MineazurGeneratedContent {
                     it.get("name").getAsString(), it.get("archetype").getAsString(),
                     it.has("nutrition") ? it.get("nutrition").getAsInt() : 0,
                     it.has("saturation") ? it.get("saturation").getAsFloat() : 0.0F,
-                    it.has("slot") ? it.get("slot").getAsString() : null));
+                    it.has("slot") ? it.get("slot").getAsString() : null,
+                    it.has("material") ? it.get("material").getAsString() : "obsidienne"));
             }
         } catch (final Exception e) {
             throw new RuntimeException("MineAzur : lecture de mineazur_items.json échouée", e);
@@ -275,7 +336,7 @@ public final class MineazurGeneratedContent {
                 case "axe" -> props.axe(OBSIDIAN, 5.0F, -3.0F);
                 case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
-                case "armor" -> props.humanoidArmor(OBSIDIENNE_ARMOR, armorType(s.slot()));
+                case "armor" -> props.humanoidArmor(armorMaterial(s.material()), armorType(s.slot()));
                 case "cosmetic" -> props.humanoidArmor(COSTUME_ARMOR, armorType(s.slot()));
                 // Grimoire de maîtrise : non empilable (chaque exemplaire porte une progression unique en PDC).
                 // Le glint est posé par instance (recette de datapack + plugin), pas baké sur l'item.
@@ -329,6 +390,15 @@ public final class MineazurGeneratedContent {
         if (chope != null && chope != Items.AIR) {
             props.usingConvertsTo(chope);
         }
+    }
+
+    // Matériau d'un item `armor` (miroir strict côté mod : mêmes chiffres, sinon les stats divergent en jeu).
+    private static ArmorMaterial armorMaterial(final String material) {
+        return switch (material) {
+            case "obsidienne" -> OBSIDIENNE_ARMOR;
+            case "etoffe" -> ETOFFE_ARMOR;
+            default -> throw new IllegalStateException("matériau d'armure inconnu : " + material);
+        };
     }
 
     private static ArmorType armorType(final String slot) {

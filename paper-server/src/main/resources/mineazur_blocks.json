@@ -1010,6 +1010,20 @@
         "sound": "GLASS",
         "mapColor": "SAND"
       }
+    },
+    {
+      "legacyId": 258,
+      "name": "metier_a_tisser",
+      "archetype": "furnace",
+      "params": {
+        "directional": true,
+        "occlusion": true,
+        "light": 13,
+        "hardness": 2.5,
+        "resistance": 2.5,
+        "sound": "WOOD",
+        "mapColor": "WOOD"
+      }
     }
   ]
 }

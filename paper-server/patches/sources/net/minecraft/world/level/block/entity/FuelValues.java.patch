@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/level/block/entity/FuelValues.java
++++ b/net/minecraft/world/level/block/entity/FuelValues.java
+@@ -40,7 +_,7 @@
+     }
+ 
+     public static FuelValues vanillaBurnTimes(final HolderLookup.Provider registries, final FeatureFlagSet enabledFeatures, final int baseUnit) {
+-        return new FuelValues.Builder(registries, enabledFeatures)
++        final FuelValues.Builder builder = new FuelValues.Builder(registries, enabledFeatures)
+             .add(Items.LAVA_BUCKET, baseUnit * 100)
+             .add(Blocks.COAL_BLOCK, baseUnit * 8 * 10)
+             .add(Items.BLAZE_ROD, baseUnit * 12)
+@@ -105,9 +_,24 @@
+             .add(Blocks.FLOWERING_AZALEA, baseUnit / 2)
+             .add(Blocks.MANGROVE_ROOTS, baseUnit * 3 / 2)
+             .add(Blocks.LEAF_LITTER, baseUnit / 2)
+-            .remove(ItemTags.NON_FLAMMABLE_WOOD)
+-            .build();
++            .remove(ItemTags.NON_FLAMMABLE_WOOD);
++        // MineAzur — l'aiguille (mineazur:eguille, forgeron N12) tient le slot COMBUSTIBLE du métier à tisser :
++        // une aiguille = 8 tissages (baseUnit*8, la valeur du charbon). C'est ce qui rend la chaîne inter-métier
++        // réelle : sans forgeron, pas de tissu, donc pas d'armure d'étoffe.
++        //
++        // ⚠️ Cette table est GLOBALE : l'aiguille brûle donc techniquement dans n'importe quel four — rien ici ne
++        // connaît le bloc. C'est mineazur-jobs (LoomExclusivityListener) qui annule l'allumage hors métier à
++        // tisser : règle de jeu réglable à chaud plutôt que gravée dans le fork.
++        //
++        // Le `if` n'est pas de la paranoïa : ajouter AIR ferait de items.AIR une entrée de la table, et
++        // isFuel(pile vide) rendrait alors `true` — un four qui s'allume avec rien.
++        final Item eguille = io.papermc.paper.mineazur.MineazurGeneratedContent.customItem("eguille");
++        if (eguille != null) {
++            builder.add(eguille, baseUnit * 8);
++        }
++        return builder.build();
+     }
++
+ 
+     public static class Builder {
+         private final HolderLookup<Item> items;

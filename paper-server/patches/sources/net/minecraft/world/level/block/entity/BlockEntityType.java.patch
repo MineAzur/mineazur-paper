@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/block/entity/BlockEntityType.java
++++ b/net/minecraft/world/level/block/entity/BlockEntityType.java
+@@ -19,7 +_,13 @@
+ 
+ public class BlockEntityType<T extends BlockEntity> {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    public static final BlockEntityType<FurnaceBlockEntity> FURNACE = register("furnace", FurnaceBlockEntity::new, Blocks.FURNACE);
++    // MineAzur : nos blocs-machines de l'archétype `furnace` (metier_a_tisser) sont déclarés VALIDES pour le type
++    // FURNACE. C'est ce qui leur donne une vraie FurnaceBlockEntity — donc l'écran de four vanilla, le hopper, le
++    // comparateur et la persistance dans le chunk — SANS créer d'entrée dans BLOCK_ENTITY_TYPE (registre qui
++    // voyage sur le réseau : une entrée de plus serait un alignement client/serveur de plus à garantir).
++    // Miroir côté mod NeoForge : BlockEntityTypeAddBlocksEvent.modify(FURNACE, …). Cf. MetierATisserBlock.
++    public static final BlockEntityType<FurnaceBlockEntity> FURNACE = register("furnace", FurnaceBlockEntity::new,
++        io.papermc.paper.mineazur.MineazurGeneratedContent.furnaceLikeBlocksWith(Blocks.FURNACE));
+     public static final BlockEntityType<ChestBlockEntity> CHEST = register(
+         "chest",
+         ChestBlockEntity::new,

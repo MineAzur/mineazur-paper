@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "fff",
+    "pFp",
+    "ppp"
+  ],
+  "key": {
+    "f": "minecraft:string",
+    "p": "#minecraft:planks",
+    "F": "minecraft:furnace"
+  },
+  "result": {
+    "id": "mineazur:metier_a_tisser",
+    "count": 1
+  }
+}

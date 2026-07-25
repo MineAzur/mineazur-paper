@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "X X",
+    "X X"
+  ],
+  "key": {
+    "X": "mineazur:tissu"
+  },
+  "result": {
+    "id": "mineazur:etoffe_boots",
+    "count": 1
+  }
+}

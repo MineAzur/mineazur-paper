@@ -1,0 +1,102 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/MetierATisserBlock.java
+@@ -1,0 +_,99 @@
++package net.minecraft.world.level.block;
++
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.core.particles.ParticleTypes;
++import net.minecraft.stats.Stats;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.MenuProvider;
++import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.entity.BlockEntity;
++import net.minecraft.world.level.block.entity.BlockEntityTicker;
++import net.minecraft.world.level.block.entity.BlockEntityType;
++import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import org.jspecify.annotations.Nullable;
++
++// MineAzur — « métier à tisser » (258, contenu INVENTÉ 2026-07-25, pas un bloc de 2011) : la machine du
++// TISSERAND. Laine + aiguille (le combustible) -> tissu, matière de l'armure d'étoffe.
++//
++// POURQUOI hériter de FurnaceBlock et pas écrire une machine à nous : on veut la mécanique du four (progression,
++// flamme, hopper, comparateur, persistance dans le chunk) SANS créer d'entrée de registre supplémentaire. Le
++// bloc réutilise donc tel quel :
++//   - la BlockEntity vanilla FurnaceBlockEntity (via BlockEntityType.FURNACE, auquel on AJOUTE ce bloc dans sa
++//     liste validBlocks — un patch d'une ligne dans BlockEntityType.java) ;
++//   - RecipeType.SMELTING (nos recettes de tissage sont de simples minecraft:smelting) ;
++//   - FurnaceMenu, donc l'écran de four VANILLA : le client n'a AUCUN écran à coder, et surtout aucun MenuType
++//     custom à enregistrer (un MenuType voyage sur le réseau : en créer un exigerait de l'aligner des deux
++//     côtés, exactement le piège central qu'on évite ici).
++// Bilan : 0 nouvelle entrée dans BLOCK_ENTITY_TYPE / MENU / RECIPE_TYPE. Seul le BLOC est une entrée neuve,
++// déjà couverte par l'invariant append-only de mineazur_blocks.json.
++//
++// CONTREPARTIE assumée : SMELTING étant partagé avec le four vanilla, la recette laine -> tissu marcherait
++// aussi dans un four ordinaire, et l'aiguille (ajoutée à FuelValues, qui est une table GLOBALE) y brûlerait.
++// L'exclusivité est donc du ressort du PLUGIN (mineazur-jobs, LoomExclusivityListener) : hors métier à tisser,
++// l'allumage est annulé. C'est la même répartition que le reste du gating de métier — le fork fournit le
++// contenu, le plugin porte la règle de jeu (et elle reste réglable à chaud, sans recompiler le serveur).
++//
++// Côté mod client, l'équivalent du patch validBlocks est l'event NeoForge BlockEntityTypeAddBlocksEvent — qui
++// EXIGE que le bloc ajouté descende de la super-classe commune des blocs déjà valides (ici FurnaceBlock, seul
++// bloc valide du type). D'où « extends FurnaceBlock » et pas « extends AbstractFurnaceBlock » : sans ça, le
++// miroir client serait impossible à écrire.
++public class MetierATisserBlock extends FurnaceBlock {
++
++    public MetierATisserBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++    }
++
++    // Pas de codec() propre, contrairement à nos autres blocs (ChairBlock, TombeBlock…) : FurnaceBlock déclare
++    // « public MapCodec<FurnaceBlock> codec() », et MapCodec<MetierATisserBlock> n'en est pas un sous-type — un
++    // override ne compilerait pas. On hérite donc de FurnaceBlock.CODEC. Sans conséquence ici : ce codec ne sert
++    // qu'à décrire un bloc dans des données de worldgen/structure, où le métier à tisser n'apparaît jamais.
++
++    @Override
++    public BlockEntity newBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
++        return new FurnaceBlockEntity(worldPosition, blockState);
++    }
++
++    @Override
++    public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(final Level level, final BlockState blockState, final BlockEntityType<T> type) {
++        // Le ticker est celui du four : createFurnaceTicker vérifie que le type RÉEL de la BlockEntity est bien
++        // FURNACE. C'est vrai grâce au patch validBlocks — sans lui, la BlockEntity serait refusée à la pose
++        // (LevelChunk.setBlockEntity : « does not allow it ») et le bloc resterait un décor inerte.
++        return createFurnaceTicker(level, type, BlockEntityType.FURNACE);
++    }
++
++    @Override
++    protected void openContainer(final Level level, final BlockPos pos, final Player player) {
++        final BlockEntity blockEntity = level.getBlockEntity(pos);
++        if (blockEntity instanceof FurnaceBlockEntity && player.openMenu((MenuProvider) blockEntity).isPresent()) {
++            // On compte l'interaction comme celle d'un four : pas de statistique custom (une entrée de
++            // BuiltInRegistries.CUSTOM_STAT de plus serait un registre supplémentaire à aligner, cf. la stat
++            // fantôme mineazur:coin_de_toit qui a déjà pollué des profils joueur).
++            player.awardStat(Stats.INTERACT_WITH_FURNACE);
++        }
++    }
++
++    @Override
++    public void animateTick(final BlockState state, final Level level, final BlockPos pos, final RandomSource random) {
++        // Pas de flamme ni de fumée : on tisse, on ne brûle rien. Seul le crépitement du métier (bruit de bois)
++        // signale l'activité — le rendu « allumé » passe par la texture de face (variante lit=true).
++        if (!state.getValue(LIT)) {
++            return;
++        }
++        if (random.nextDouble() < 0.05) {
++            level.playLocalSound(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5,
++                net.minecraft.sounds.SoundEvents.WOOL_HIT, net.minecraft.sounds.SoundSource.BLOCKS, 0.4F, 1.4F, false);
++        }
++        if (random.nextDouble() < 0.1) {
++            final Direction facing = state.getValue(FACING);
++            final double sideways = random.nextDouble() * 0.6 - 0.3;
++            final double dx = facing.getAxis() == Direction.Axis.X ? facing.getStepX() * 0.52 : sideways;
++            final double dz = facing.getAxis() == Direction.Axis.Z ? facing.getStepZ() * 0.52 : sideways;
++            level.addParticle(ParticleTypes.WHITE_ASH, pos.getX() + 0.5 + dx, pos.getY() + random.nextDouble() * 0.6,
++                pos.getZ() + 0.5 + dz, 0.0, 0.0, 0.0);
++        }
++    }
++}
