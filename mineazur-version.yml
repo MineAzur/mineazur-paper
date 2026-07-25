@@ -13,6 +13,9 @@ server-version: "0.1.3"
 # Servent à retrouver ce qui reste à décrire dans docs/CHANGELOG_SERVEUR.md au bump suivant :
 #     git -C <repo> log <borne de la version précédente>..HEAD
 # ⚠️ Ces SHA précèdent d'un commit le bump lui-même : le premier commit listé est donc toujours ce bump.
+# ⚠️ Une borne dit RÉDIGÉ, pas PUBLIÉ : TOUS les repos sont bornés, même ceux dont les notes sont restées
+#    dans « Non publié » (0.1.3 : quests et jobs). Ce brouillon EST la mémoire du rédigé-non-sorti — ne
+#    jamais y retirer une note sans la promouvoir dans une version, elle deviendrait introuvable.
 # Plus récent en haut. Ne pas éditer à la main.
 changelog-bornes:
   0.1.3:
