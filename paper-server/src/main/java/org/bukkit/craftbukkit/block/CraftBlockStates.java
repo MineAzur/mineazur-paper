@@ -148,6 +148,15 @@ public final class CraftBlockStates {
     ) {
         BlockStateFactory<B> factory = new BlockEntityStateFactory<>(blockStateType, blockStateConstructor, blockEntityType);
         for (net.minecraft.world.level.block.Block block : blockEntityType.validBlocks) {
+            // MineAzur : nos blocs custom n'ont pas d'entrée dans l'enum Material et retombent tous sur un Material
+            // vanilla PARTAGÉ (STONE, cf. CraftMagicNumbers). Indexer la factory par ce Material lierait la factory
+            // à TOUS les blocs custom : `metier_a_tisser` est valide pour FURNACE -> FACTORIES[STONE] = factory four,
+            // et casser n'importe quel autre bloc custom (diamond_lamp…) lèverait « Block entity is null ». On saute
+            // donc l'index par Material pour eux : quand la block entity existe, getFactory(material, type) la trouve
+            // déjà par FACTORIES_BY_BLOCK_ENTITY_TYPE, qui est indexé par type et reste exact.
+            if ("mineazur".equals(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(block).getNamespace())) {
+                continue;
+            }
             CraftBlockStates.register(CraftBlockType.minecraftToBukkit(block), factory);
         }
         CraftBlockStates.register(blockEntityType, factory);
