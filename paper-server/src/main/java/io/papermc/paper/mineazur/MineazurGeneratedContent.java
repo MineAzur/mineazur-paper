@@ -341,8 +341,11 @@ public final class MineazurGeneratedContent {
                 }
                 case "sword" -> props.sword(OBSIDIAN, 3.0F, -2.4F);
                 case "pickaxe" -> props.pickaxe(OBSIDIAN, 1.0F, -2.8F);
-                // Marteau : outil d'obsidienne lourd — dégâts ENTRE pioche (1.0) et épée (3.0), swing plus lent.
-                case "hammer" -> props.pickaxe(OBSIDIAN, 2.0F, -3.2F);
+                // Marteau : outil d'obsidienne lourd — arme d'assaut, pas un simple outil. Baseline 5.0 (choix
+                // utilisateur 2026-07-25, ex-2.0) => 9 dégâts affichés (1 base joueur + 5 + 3 de bonus
+                // d'obsidienne), à égalité avec la hache. Le swing le plus lent du set (-3.2) le garde derrière
+                // en DPS : 7.2/s contre 9 pour la hache et 11.2 pour l'épée — gros coup lent, pas un DPS roi.
+                case "hammer" -> props.pickaxe(OBSIDIAN, 5.0F, -3.2F);
                 case "axe" -> props.axe(OBSIDIAN, 5.0F, -3.0F);
                 case "shovel" -> props.shovel(OBSIDIAN, 1.5F, -3.0F);
                 case "hoe" -> props.hoe(OBSIDIAN, -3.0F, 0.0F);
