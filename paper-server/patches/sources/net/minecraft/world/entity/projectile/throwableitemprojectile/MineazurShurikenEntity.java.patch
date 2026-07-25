@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/MineazurShurikenEntity.java
-@@ -1,0 +_,83 @@
+@@ -1,0 +_,87 @@
 +package net.minecraft.world.entity.projectile.throwableitemprojectile;
 +
 +import net.minecraft.core.registries.BuiltInRegistries;
@@ -25,8 +25,12 @@
 +    // Renseigné par le générateur (MineazurGeneratedContent.registerEntities) au chargement.
 +    public static EntityType<MineazurShurikenEntity> TYPE;
 +
-+    /** Durée de vie d'un shuriken planté, en ticks (60 s — comme une flèche fichée). */
-+    private static final int PLANTED_LIFETIME = 20 * 60;
++    /**
++     * Durée de vie d'un shuriken planté, en ticks. 5 s (choix utilisateur 2026-07-25) : les 60 s d'origine
++     * (calquées sur une flèche fichée) laissaient trop de shurikens à l'écran — le but est juste de voir
++     * l'impact, pas de décorer le décor.
++     */
++    private static final int PLANTED_LIFETIME = 20 * 5;
 +
 +    private boolean planted;
 +    private int plantedTicks;
