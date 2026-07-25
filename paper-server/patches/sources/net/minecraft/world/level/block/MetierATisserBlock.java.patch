@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/MetierATisserBlock.java
-@@ -1,0 +_,147 @@
+@@ -1,0 +_,167 @@
 +package net.minecraft.world.level.block;
 +
 +import java.util.EnumMap;
@@ -9,11 +9,13 @@
 +import net.minecraft.core.Direction;
 +import net.minecraft.core.particles.ParticleTypes;
 +import net.minecraft.stats.Stats;
++import net.minecraft.network.chat.Component;
 +import net.minecraft.util.RandomSource;
-+import net.minecraft.world.MenuProvider;
++import net.minecraft.world.SimpleMenuProvider;
 +import net.minecraft.world.entity.player.Player;
 +import net.minecraft.world.level.BlockGetter;
 +import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 +import net.minecraft.world.level.block.entity.BlockEntity;
 +import net.minecraft.world.level.block.entity.BlockEntityTicker;
 +import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -116,10 +118,28 @@
 +        return createFurnaceTicker(level, type, BlockEntityType.FURNACE);
 +    }
 +
++    /**
++     * Titre affiché en haut de l'écran. La {@code FurnaceBlockEntity} étant vanilla, elle s'annonce
++     * « container.furnace » — le joueur voyait donc « Four » sur notre machine (signalé en jeu le 2026-07-25).
++     *
++     * <p>On ne renomme PAS la BlockEntity (ce serait un `CustomName` persisté dans le chunk, à poser à chaque
++     * pose et absent des blocs déjà posés) : on habille seulement l'ouverture d'un {@link SimpleMenuProvider}
++     * qui délègue la création du menu à la BlockEntity et ne change que le titre. Rien n'est stocké, et un bloc
++     * posé avant ce correctif s'affiche correctement dès la prochaine ouverture.
++     *
++     * <p>Clé de traduction et non texte littéral : le client la traduit (le mod embarque fr_fr et en_us), donc
++     * un joueur anglophone lit « Weaving Loom ». Un nom donné à l'enclume (CustomName) reste prioritaire.
++     */
++    private static Component titre(final BaseContainerBlockEntity conteneur) {
++        final Component custom = conteneur.getCustomName();
++        return custom != null ? custom : Component.translatable("block.mineazur.metier_a_tisser");
++    }
++
 +    @Override
 +    protected void openContainer(final Level level, final BlockPos pos, final Player player) {
 +        final BlockEntity blockEntity = level.getBlockEntity(pos);
-+        if (blockEntity instanceof FurnaceBlockEntity && player.openMenu((MenuProvider) blockEntity).isPresent()) {
++        if (blockEntity instanceof final FurnaceBlockEntity furnace
++                && player.openMenu(new SimpleMenuProvider(furnace::createMenu, titre(furnace))).isPresent()) {
 +            // On compte l'interaction comme celle d'un four : pas de statistique custom (une entrée de
 +            // BuiltInRegistries.CUSTOM_STAT de plus serait un registre supplémentaire à aligner, cf. la stat
 +            // fantôme mineazur:coin_de_toit qui a déjà pollué des profils joueur).
