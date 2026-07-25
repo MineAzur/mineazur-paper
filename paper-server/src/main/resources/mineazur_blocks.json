@@ -1017,7 +1017,7 @@
       "archetype": "furnace",
       "params": {
         "directional": true,
-        "occlusion": true,
+        "occlusion": false,
         "light": 13,
         "hardness": 2.5,
         "resistance": 2.5,

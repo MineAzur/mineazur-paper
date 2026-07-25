@@ -1,8 +1,10 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/MetierATisserBlock.java
-@@ -1,0 +_,99 @@
+@@ -1,0 +_,147 @@
 +package net.minecraft.world.level.block;
 +
++import java.util.EnumMap;
++import java.util.Map;
 +import net.minecraft.core.BlockPos;
 +import net.minecraft.core.Direction;
 +import net.minecraft.core.particles.ParticleTypes;
@@ -10,6 +12,7 @@
 +import net.minecraft.util.RandomSource;
 +import net.minecraft.world.MenuProvider;
 +import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.level.BlockGetter;
 +import net.minecraft.world.level.Level;
 +import net.minecraft.world.level.block.entity.BlockEntity;
 +import net.minecraft.world.level.block.entity.BlockEntityTicker;
@@ -17,6 +20,9 @@
 +import net.minecraft.world.level.block.entity.FurnaceBlockEntity;
 +import net.minecraft.world.level.block.state.BlockBehaviour;
 +import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.jspecify.annotations.Nullable;
 +
 +// MineAzur — « métier à tisser » (258, contenu INVENTÉ 2026-07-25, pas un bloc de 2011) : la machine du
@@ -46,6 +52,43 @@
 +// miroir client serait impossible à écrire.
 +public class MetierATisserBlock extends FurnaceBlock {
 +
++    // --- Géométrie ---------------------------------------------------------------------------------------------
++    // Le bloc n'est PAS un cube : c'est un cadre de tisserand (deux montants, une traverse basse, un rouleau de
++    // tissu en haut, une nappe de fils tendus) avec une pédale qui dépasse en façade. Décidé le 2026-07-25 :
++    // « un bloc inspiré du four mais visuellement différent » — la silhouette devait cesser d'être celle d'un four.
++    //
++    // ⚠️ Les mêmes boîtes décrivent la COLLISION (ici) et le MODÈLE (client, elements de metier_a_tisser.json).
++    // Elles doivent rester cohérentes : une hitbox qui déborde du modèle donne un bloc « qu'on touche dans le
++    // vide ». On garde donc la collision volontairement SIMPLE (corps + pédale) plutôt que de recopier les cinq
++    // pièces du modèle : plus grossier qu'exact, mais impossible à désynchroniser pièce à pièce.
++    //
++    // Repère : les boîtes sont écrites pour FACING=NORTH (façade côté z faible, là où sort la pédale) puis
++    // tournées autour de Y. C'est l'idiome de ToitBlock — la forme est DÉRIVÉE, jamais recopiée par direction.
++    private static final Map<Direction, VoxelShape> FORMES = new EnumMap<>(Direction.class);
++
++    static {
++        for (final Direction d : Direction.Plane.HORIZONTAL) {
++            FORMES.put(d, Shapes.or(
++                // corps : les montants, la traverse et le rouleau tiennent tous dans cette tranche centrale
++                tourner(d, 1.0D, 0.0D, 5.0D, 15.0D, 16.0D, 11.0D),
++                // pédale, en saillie devant le cadre
++                tourner(d, 4.0D, 0.0D, 1.0D, 12.0D, 2.0D, 5.0D)).optimize());
++        }
++    }
++
++    /** Boîte en pixels (0-16) écrite pour NORTH, tournée autour de Y vers {@code d}. */
++    private static VoxelShape tourner(final Direction d, final double x1, final double y1, final double z1,
++                                      final double x2, final double y2, final double z2) {
++        final double a = x1 / 16.0D, b = z1 / 16.0D, c = x2 / 16.0D, e = z2 / 16.0D;
++        final double lo = y1 / 16.0D, hi = y2 / 16.0D;
++        return switch (d) {
++            case SOUTH -> Shapes.box(1.0D - c, lo, 1.0D - e, 1.0D - a, hi, 1.0D - b);
++            case WEST -> Shapes.box(b, lo, 1.0D - c, e, hi, 1.0D - a);
++            case EAST -> Shapes.box(1.0D - e, lo, a, 1.0D - b, hi, c);
++            default -> Shapes.box(a, lo, b, c, hi, e);
++        };
++    }
++
 +    public MetierATisserBlock(final BlockBehaviour.Properties properties) {
 +        super(properties);
 +    }
@@ -54,6 +97,11 @@
 +    // « public MapCodec<FurnaceBlock> codec() », et MapCodec<MetierATisserBlock> n'en est pas un sous-type — un
 +    // override ne compilerait pas. On hérite donc de FurnaceBlock.CODEC. Sans conséquence ici : ce codec ne sert
 +    // qu'à décrire un bloc dans des données de worldgen/structure, où le métier à tisser n'apparaît jamais.
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return FORMES.get(state.getValue(FACING));
++    }
 +
 +    @Override
 +    public BlockEntity newBlockEntity(final BlockPos worldPosition, final BlockState blockState) {
