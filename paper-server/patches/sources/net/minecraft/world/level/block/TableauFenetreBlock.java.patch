@@ -1,0 +1,256 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/TableauFenetreBlock.java
+@@ -1,0 +_,253 @@
++package net.minecraft.world.level.block;
++
++import com.mojang.serialization.MapCodec;
++import java.util.Map;
++import net.minecraft.core.BlockPos;
++import net.minecraft.core.Direction;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.item.context.BlockPlaceContext;
++import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.LevelAccessor;
++import net.minecraft.world.level.LevelReader;
++import net.minecraft.world.level.ScheduledTickAccess;
++import net.minecraft.world.level.block.state.BlockBehaviour;
++import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.block.state.StateDefinition;
++import net.minecraft.world.level.block.state.properties.BlockStateProperties;
++import net.minecraft.world.level.block.state.properties.EnumProperty;
++import net.minecraft.world.level.block.state.properties.IntegerProperty;
++import net.minecraft.world.phys.shapes.CollisionContext;
++import net.minecraft.world.phys.shapes.Shapes;
++import net.minecraft.world.phys.shapes.VoxelShape;
++import org.jspecify.annotations.Nullable;
++
++// MineAzur — TABLEAU-FENÊTRE (mineazur:tableau_fenetre) : vitre SANS TAIN, vraie, à sens unique.
++//
++// CE QU'IL FAIT. D'un côté (le RECTO) : un tableau encadré de bois, parfaitement OPAQUE — on ne voit rien
++// derrière, c'est un mur décoré. De l'autre : RIEN, on voit à travers comme si le mur n'existait pas. Et la
++// lumière ne passe dans aucun sens (cf. getLightDampening), donc le poste d'observation reste noir face à une
++// pièce éclairée.
++//
++// COMMENT, puisque « la transparence n'est pas directionnelle ». Elle ne l'est pas pour un MATÉRIAU — mais
++// elle l'est pour de la GÉOMÉTRIE. Minecraft rend les faces de modèle avec le backface culling ACTIF
++// (RenderPipelines : `cull` vaut true par défaut et SOLID_TERRAIN ne le désactive pas) : une face déclarée
++// « south » n'existe tout simplement pas quand on la regarde depuis le nord. Le bloc ne porte donc QU'UN SEUL
++// quad, côté recto. Depuis le verso il n'y a aucune géométrie à dessiner, et le regard file jusqu'au décor
++// d'en face. Rien à voir avec de l'alpha : c'est un mur d'un côté, du vide de l'autre.
++//
++// GÉOMÉTRIE : LE TABLEAU EST ACCROCHÉ AU SUPPORT, comme un vrai tableau. Le quad n'est PAS du côté vers lequel
++// il regarde : il est plaqué au FOND de la case, contre le bloc visé (support en FACING.getOpposite()), et
++// regarde vers le joueur. C'est ce qui supprime le « bloc d'espace » entre le tableau et son mur — le défaut
++// signalé en jeu le 2026-08-16, quand le quad était encore du côté de sa propre normale.
++//
++// ⚠️ CE QUI REND CE PLACEMENT POSSIBLE : LA COLLISION DE CUBE PLEIN. Lu dans BlockModelLighter (26.1.2), un
++// quad sans lumière imposée est éclairé par la case du VOISIN seulement si `faceCubic` est vrai, et
++//     faceCubic = quad plat ET (au bord de la case du côté où il regarde OU state.isCollisionShapeFullBlock)
++// Un quad plaqué au fond échoue au premier terme — et comme notre case BLOQUE la lumière (getLightDampening),
++// il serait alors éclairé par du noir : tableau NOIR. Le second terme est donc la seule porte de sortie, d'où
++// getCollisionShape = cube plein. Ce n'est pas un choix cosmétique : sans lui, ce placement est infaisable
++// (vérifié dans les sources avant d'écrire — LevelRenderer.getLightCoords n'a AUCUNE logique de secours).
++// Conséquence assumée et connue de l'utilisateur : le bloc occupe vraiment sa case, on bute dessus.
++//
++// Le quad est en outre retiré de 0.5 px du fond : sans ce retrait il serait COPLANAIRE avec la face du bloc
++// support (qui se dessine, notre bloc étant noOcclusion) — z-fighting garanti, et cette fois bien réel.
++//
++// LA CONTRAINTE, qui explique le geste du joueur. Un bloc COLLÉ sur un mur ne perce rien : pour voir à travers,
++// le tableau REMPLACE le bloc de mur. Le geste est donc « casser le bloc de mur, poser le tableau à sa place »
++// — et non « accrocher un tableau ».
++//
++// ORIENTATION (6 faces). FACING est la direction vers laquelle le tableau REGARDE ; son support est donc en
++// FACING.getOpposite() — la convention de WallTorchBlock. À la pose, le tableau se présente FACE AU POSEUR,
++// accroché au bloc visé : on accroche son tableau en le regardant, comme une torche ou une pancarte. Pour
++// obtenir la vue traversante, on casse ensuite le bloc de mur DERRIÈRE le tableau : le tableau reste (il n'a
++// aucun canSurvive) et l'on voit alors à travers depuis l'autre pièce.
++//
++// RACCORD. Table blob 47 partagée avec le sang (MineazurBlobTiling), appliquée DANS LE PLAN DE LA FACE. La
++// nouveauté par rapport au sang : deux vitres ne se raccordent que si elles ont le MÊME facing — deux faces
++// différentes, même adjacentes, ne sont pas coplanaires et n'appartiennent donc pas au même cadre. Corollaire
++// assumé : deux cadres qui se touchent fusionnent en un seul (comportement standard des blocs connectés) ;
++// pour les séparer il faut un bloc d'écart.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.TableauFenetreBlock (invariant I3) : mêmes propriétés, mêmes plages.
++// Le REPÈRE LOCAL (table REPERE) est en plus un miroir du générateur client-mod/tools/gen_tableau_fenetre.py :
++// une divergence y collerait la bonne tuile dans la mauvaise orientation.
++public class TableauFenetreBlock extends Block {
++    public static final MapCodec<TableauFenetreBlock> CODEC = simpleCodec(TableauFenetreBlock::new);
++
++    /** Forme du raccord (0..46), même jeu de tuiles que le sang. Le mapping index→texture est en Python. */
++    public static final IntegerProperty SHAPE = IntegerProperty.create("shape", 0, MineazurBlobTiling.SHAPE_COUNT - 1);
++
++    /** Normale du RECTO : les 6 faces (là où le sang mural n'en a que 4). */
++    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
++
++    // Contour de SÉLECTION : la plaque de 0.5 px plaquée contre le SUPPORT (côté FACING.getOpposite()), donc
++    // collée au tableau qu'on vise — et non le cube entier, qui donnerait un contour flottant devant l'image.
++    // La COLLISION, elle, est un cube plein (cf. getCollisionShape) : les deux divergent à dessein.
++    private static final Map<Direction, VoxelShape> SHAPES = Map.of(
++        Direction.SOUTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
++        Direction.NORTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
++        Direction.EAST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
++        Direction.WEST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0),
++        Direction.UP, Block.box(0.0, 0.0, 0.0, 16.0, 0.5, 16.0),
++        Direction.DOWN, Block.box(0.0, 15.5, 0.0, 16.0, 16.0, 16.0)
++    );
++
++    // REPÈRE LOCAL de la tuile, par facing : {haut, droite} exprimés en directions du MONDE.
++    //
++    // D'où sortent ces valeurs (à refaire à l'identique si on y touche) : le blockstate ne stocke qu'UN modèle
++    // par forme — celui de facing=SOUTH, recto vers +z, tuile « haut » vers +y et « droite » vers +x — puis le
++    // fait tourner. Le repère local est donc l'image de (UP, EAST) par CETTE rotation, et par rien d'autre :
++    //   facing=south → aucune rotation      facing=west → y=90       facing=north → y=180   facing=east → y=270
++    //   facing=up    → x=90                 facing=down → x=270
++    // Conventions vérifiées dans les blockstates vanilla 26.1.2 (observer.json : modèle de base vers NORTH,
++    // down=x90/up=x270/east=y90 ; end_rod.json : base vers UP, north=x90) — donc y tourne dans le sens horaire
++    // vu de dessus (NORTH→EAST) et x=90 envoie +z sur +y.
++    // Contrôle indépendant : « droite » doit être la main droite d'un observateur qui FAIT FACE au recto, soit
++    // right = (-facing) × haut. south : (-z)×(+y) = +x = EAST ✓ · up : (-y)×(-z) = +x = EAST ✓ ·
++    // down : (+y)×(+z) = +x = EAST ✓. Les 4 horizontales retombent sur facing.getCounterClockWise(), exactement
++    // comme SangMurBlock — dont le sens avait dû être corrigé en jeu (fente au joint) : on hérite du bon.
++    private record Repere(Direction haut, Direction droite) {}
++
++    private static final Map<Direction, Repere> REPERE = Map.of(
++        Direction.SOUTH, new Repere(Direction.UP, Direction.EAST),
++        Direction.WEST, new Repere(Direction.UP, Direction.SOUTH),
++        Direction.NORTH, new Repere(Direction.UP, Direction.WEST),
++        Direction.EAST, new Repere(Direction.UP, Direction.NORTH),
++        Direction.UP, new Repere(Direction.NORTH, Direction.EAST),
++        Direction.DOWN, new Repere(Direction.SOUTH, Direction.EAST)
++    );
++
++    public TableauFenetreBlock(final BlockBehaviour.Properties properties) {
++        super(properties);
++        this.registerDefaultState(this.stateDefinition.any()
++            .setValue(SHAPE, 0)
++            .setValue(FACING, Direction.NORTH));
++    }
++
++    @Override
++    protected MapCodec<? extends TableauFenetreBlock> codec() {
++        return CODEC;
++    }
++
++    @Override
++    protected void createBlockStateDefinition(final StateDefinition.Builder<Block, BlockState> builder) {
++        builder.add(SHAPE, FACING);
++    }
++
++    @Override
++    protected VoxelShape getShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return SHAPES.get(state.getValue(FACING));
++    }
++
++    // --- Lumière et traversée ------------------------------------------------------------------------------------
++    // La lumière est arrêtée dans les DEUX sens (patron TintedGlassBlock, 26.1.2). C'est une exigence du
++    // dispositif, pas un détail : sans elle, la pièce éclairée illuminerait le poste d'observation à travers
++    // l'ouverture et le guetteur serait visible. Le bloc reste noOcclusion — le décor voisin doit se dessiner
++    // et le regard doit passer côté verso : seule la LUMIÈRE est arrêtée.
++
++    @Override
++    protected boolean propagatesSkylightDown(final BlockState state) {
++        return false;
++    }
++
++    @Override
++    protected int getLightDampening(final BlockState state) {
++        return 15;
++    }
++
++    // Cube plein — EXIGENCE DE RENDU avant d'être un choix de gameplay : c'est `isCollisionShapeFullBlock` qui
++    // rend `faceCubic` vrai et permet donc d'éclairer un quad plaqué au fond de sa case (cf. l'en-tête). Le
++    // ramener à la plaque fine rendrait le tableau NOIR. Effet de bord assumé : on bute sur la case entière.
++    @Override
++    protected VoxelShape getCollisionShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return Shapes.block();
++    }
++
++    // --- Connexion ---------------------------------------------------------------------------------------------
++
++    // Un voisin ne compte que s'il présente LE MÊME plan (même facing). Deux tableaux sur des faces différentes,
++    // fussent-ils côte à côte, n'ont pas de bord commun à masquer : les raccorder dessinerait un cadre continu
++    // sur deux plans perpendiculaires, ce qui n'a pas de sens.
++    private static boolean connecte(final BlockGetter level, final BlockPos pos, final Direction facing) {
++        final BlockState state = level.getBlockState(pos);
++        return state.getBlock() instanceof TableauFenetreBlock && state.getValue(FACING) == facing;
++    }
++
++    // Voisinage local -> bits n=1,s=2,e=4,w=8,ne=16,nw=32,se=64,sw=128 (contrat MineazurBlobTiling).
++    private static int rawVoisins(final BlockGetter level, final BlockPos pos, final Direction facing) {
++        final Repere r = REPERE.get(facing);
++        final Direction haut = r.haut(), droite = r.droite();
++        final Direction bas = haut.getOpposite(), gauche = droite.getOpposite();
++        int raw = 0;
++        if (connecte(level, pos.relative(haut), facing)) raw |= 1;
++        if (connecte(level, pos.relative(bas), facing)) raw |= 2;
++        if (connecte(level, pos.relative(droite), facing)) raw |= 4;
++        if (connecte(level, pos.relative(gauche), facing)) raw |= 8;
++        if (connecte(level, pos.relative(haut).relative(droite), facing)) raw |= 16;
++        if (connecte(level, pos.relative(haut).relative(gauche), facing)) raw |= 32;
++        if (connecte(level, pos.relative(bas).relative(droite), facing)) raw |= 64;
++        if (connecte(level, pos.relative(bas).relative(gauche), facing)) raw |= 128;
++        return raw;
++    }
++
++    private BlockState etatConnecte(final BlockGetter level, final BlockPos pos, final BlockState state) {
++        return state.setValue(SHAPE, MineazurBlobTiling.shapeFromRaw(rawVoisins(level, pos, state.getValue(FACING))));
++    }
++
++    // --- Cycle de vie ------------------------------------------------------------------------------------------
++
++    // FACING = l'OPPOSÉ de la direction du regard : le tableau se dessine FACE AU POSEUR, et c'est de l'autre
++    // côté qu'on voit à travers (inversé le 2026-08-16 après essai en jeu — la première version le dessinait à
++    // l'opposé, et on posait donc à l'aveugle). Même convention que SangMurBlock, et que les torches/pancartes :
++    // ce qu'on installe se présente à soi. getNearestLookingDirections() rend les 6 directions triées par
++    // proximité au regard, la première est donc l'axe visé — c'est ce qui permet de viser une paroi, le sol ou le
++    // plafond du même geste. Aucun canSurvive : le bloc remplace le mur, il n'a rien derrière à quoi s'accrocher
++    // (et un panneau flottant est un usage légitime).
++    @Override
++    public @Nullable BlockState getStateForPlacement(final BlockPlaceContext context) {
++        final Direction regard = context.getNearestLookingDirections()[0];
++        final BlockState state = this.defaultBlockState().setValue(FACING, regard.getOpposite());
++        return this.etatConnecte(context.getLevel(), context.getClickedPos(), state);
++    }
++
++    @Override
++    protected BlockState updateShape(
++        final BlockState state,
++        final LevelReader level,
++        final ScheduledTickAccess ticks,
++        final BlockPos pos,
++        final Direction directionToNeighbour,
++        final BlockPos neighbourPos,
++        final BlockState neighbourState,
++        final RandomSource random
++    ) {
++        return this.etatConnecte(level, pos, state);
++    }
++
++    // updateShape ne notifie que les 6 faces : il manque les 4 DIAGONALES du plan, qui portent pourtant les coins
++    // rentrants du blob. Sans ce rattrapage, casser un bloc au milieu d'un grand cadre laisserait les diagonales
++    // avec l'ancien coin (trou sans angle de moulure).
++    @Override
++    protected void updateIndirectNeighbourShapes(final BlockState state, final LevelAccessor level, final BlockPos pos,
++                                                 final int updateFlags, final int updateLimit) {
++        if (updateLimit <= 0) {
++            return;
++        }
++        final Repere r = REPERE.get(state.getValue(FACING));
++        final Direction haut = r.haut(), droite = r.droite();
++        final Direction bas = haut.getOpposite(), gauche = droite.getOpposite();
++        for (final BlockPos dp : new BlockPos[]{
++            pos.relative(haut).relative(droite), pos.relative(haut).relative(gauche),
++            pos.relative(bas).relative(droite), pos.relative(bas).relative(gauche),
++        }) {
++            final BlockState voisin = level.getBlockState(dp);
++            if (!(voisin.getBlock() instanceof TableauFenetreBlock tableau)) {
++                continue;
++            }
++            final BlockState nouveau = tableau.etatConnecte(level, dp, voisin);
++            if (!nouveau.equals(voisin)) {
++                level.setBlock(dp, nouveau, updateFlags & ~Block.UPDATE_NEIGHBORS, updateLimit - 1);
++            }
++        }
++    }
++}

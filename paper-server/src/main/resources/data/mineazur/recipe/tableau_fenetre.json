@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PVP",
+    "VNV",
+    "PVP"
+  ],
+  "key": {
+    "P": "minecraft:oak_planks",
+    "V": "minecraft:glass",
+    "N": "minecraft:black_dye"
+  },
+  "result": {
+    "id": "mineazur:tableau_fenetre",
+    "count": 8
+  }
+}

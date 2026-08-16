@@ -50,6 +50,7 @@ import net.minecraft.world.level.block.SangMurPerissableBlock;
 import net.minecraft.world.level.block.SangSolBlock;
 import net.minecraft.world.level.block.SangSolPerissableBlock;
 import net.minecraft.world.level.block.TableBlock;
+import net.minecraft.world.level.block.TableauFenetreBlock;
 import net.minecraft.world.level.block.ToitBlock;
 import net.minecraft.world.level.block.TombeBlock;
 import net.minecraft.world.level.block.SoundType;
@@ -187,7 +188,10 @@ public final class MineazurGeneratedContent {
                 if (!s.occlusion()) {
                     props.noOcclusion();
                 }
-                if (s.archetype().startsWith("connected")) {
+                // ⚠️ Test sur les DEUX noms exacts, et surtout PAS sur un `startsWith("connected")` : le
+                // tableau-fenêtre (`connected_panel`) partage le raccord blob du sang mais rien de son
+                // comportement — une vitre doit ARRÊTER le joueur, là où un décal de sang se traverse.
+                if ("connected".equals(s.archetype()) || "connected_wall".equals(s.archetype())) {
                     // Décal plat non-solide (peint au sol ou sur une paroi) : traversable + détruit par un piston
                     // (comme la redstone). « Éternel » ne concerne QUE le délavage, pas les pistons.
                     props.noCollision().pushReaction(PushReaction.DESTROY);
@@ -214,6 +218,10 @@ public final class MineazurGeneratedContent {
             // l'en-tête de SangBlock, createBlockStateDefinition tourne avant l'init des champs d'instance.
             case "connected" -> s.perishable() ? new SangSolPerissableBlock(props) : new SangSolBlock(props);
             case "connected_wall" -> s.perishable() ? new SangMurPerissableBlock(props) : new SangMurBlock(props);
+            // Tableau-fenêtre : même table de raccord blob que le sang (MineazurBlobTiling), mais dans le plan
+            // d'une face parmi SIX, et avec la matière d'une vitre (collision, lumière arrêtée). Cf.
+            // TableauFenetreBlock et docs/reference/blocs/TABLEAU_FENETRE.md.
+            case "connected_panel" -> new TableauFenetreBlock(props);
             case "lamp" -> new DiamondLampBlock(props);
             // `toit` a ABSORBÉ `coin_de_toit` (210, retiré le 2026-07-16) : son coin est devenu la forme OUTER.
             case "toit" -> new ToitBlock(props);

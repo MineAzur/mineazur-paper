@@ -1024,6 +1024,22 @@
         "sound": "WOOD",
         "mapColor": "WOOD"
       }
+    },
+    {
+      "_comment": "Tableau-fenetre (2026-08-16) : vitre SANS TAIN a sens unique. RECTO = tableau encadre OPAQUE, verso = rien du tout (on voit a travers le mur), lumiere bloquee dans les deux sens. Le sens unique vient de la GEOMETRIE, pas d'un materiau : le modele n'a QU'UN quad et le backface culling le rend inexistant vu de l'autre cote. Ajoute EN FIN (invariant I1). legacyId 259 = ordre d'enregistrement pur (bloc NOUVEAU, jamais sur l'ancienne map, aucun remap Phase 2). Archetype 'connected_panel' = 3e membre de la famille connectee : il REUTILISE la table blob 47 du sang (MineazurBlobTiling, partagee par les deux cotes) mais dans le plan d'une face parmi SIX, la ou 'connected' vit au sol et 'connected_wall' sur 4 faces verticales. Nom d'archetype DISTINCT de 'connected*' a dessein : le generateur donne noCollision a la famille sang, or ce bloc remplace un mur et doit arreter le joueur. sound WOOD et non GLASS : un son de verre trahirait le dispositif a la casse. Details : docs/reference/blocs/TABLEAU_FENETRE.md.",
+      "legacyId": 259,
+      "name": "tableau_fenetre",
+      "archetype": "connected_panel",
+      "params": {
+        "directional": false,
+        "occlusion": false,
+        "light": 0,
+        "hardness": 1.0,
+        "resistance": 1.0,
+        "sound": "WOOD",
+        "mapColor": "WOOD",
+        "states": "shape:0..46 (blob 8-voisins dans le PLAN DE LA FACE, meme table que le sang) x facing:6 (normale du RECTO) = 282 etats"
+      }
     }
   ]
 }

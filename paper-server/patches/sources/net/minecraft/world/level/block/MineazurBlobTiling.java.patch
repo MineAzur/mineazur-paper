@@ -1,0 +1,71 @@
+--- /dev/null
++++ b/net/minecraft/world/level/block/MineazurBlobTiling.java
+@@ -1,0 +_,68 @@
++package net.minecraft.world.level.block;
++
++import java.util.Arrays;
++
++// MineAzur — table de raccord « blob » 47 tuiles, PARTAGÉE par tous les blocs connectés du projet.
++//
++// Extraite de SangBlock le 2026-08-16, quand le tableau-fenêtre (mineazur:tableau_fenetre) a eu besoin de la
++// MÊME résolution de voisinage dans un tout autre contexte (une vitre encadrée sur 6 faces, pas une flaque).
++// Deux blocs sans aucun rapport thématique partagent donc une seule table : c'est délibéré et ce n'est PAS
++// gratuit — la table définit un contrat (quels bits, dans quel ordre, quel index par signature) que le
++// GÉNÉRATEUR DE TEXTURES doit reproduire à l'identique côté Python. Une seule table ⇒ un seul contrat à tenir.
++//
++// Principe : chaque bloc regarde ses 8 voisins DANS SON PLAN (le plan est défini par le bloc appelant : sol
++// horizontal pour le sang au sol, plan du mur pour le sang mural, plan de la face portante pour le
++// tableau-fenêtre). Une tuile est « fermée » (raccord net jusqu'au bord) sur un côté connecté, « ouverte »
++// (bord dessiné : silhouette organique pour le sang, moulure de cadre pour le tableau) sur un côté libre.
++// Un COIN dont les deux côtés sont connectés mais dont la DIAGONALE est vide est un COIN RENTRANT : il reçoit
++// un traitement propre (arrondi pour le sang, angle de moulure pour le tableau). D'où 47 formes distinctes et
++// non 256 : les 4 diagonales ne comptent que là où elles changent quelque chose.
++//
++// ⚠️ MIROIR STRICT de com.mineazur.client.MineazurBlobTiling ET de client-mod/tools/gen_sang_textures.py et
++// gen_tableau_fenetre.py : sig(), l'ordre d'itération 0..255 et l'ordre d'attribution des index doivent être
++// identiques partout. Côté Java, une divergence serveur/client désaligne les IDs d'états de palette (I3) ;
++// côté Python, elle colle la mauvaise texture sur le bon état (le bloc se raccorde « à l'envers »).
++public final class MineazurBlobTiling {
++    private MineazurBlobTiling() {
++    }
++
++    /** Nombre de formes distinctes du jeu blob standard : 47. Borne haute de la propriété {@code shape}. */
++    public static final int SHAPE_COUNT;
++
++    private static final int[] SHAPE_BY_SIG = new int[256];
++
++    // Signature 8 bits : n,s,e,w (côtés connectés) + coin REMPLI NW/NE/SW/SE (2 côtés connectés ET diagonale
++    // présente). Repère LOCAL au plan du bloc : c'est l'appelant qui décide ce que « n » veut dire dans le
++    // monde (cf. SangMurBlock : n = haut ; TableauFenetreBlock : table repereLocal()). <= 47 valeurs distinctes.
++    private static int sig(final int raw) {
++        final boolean n = (raw & 1) != 0, s = (raw & 2) != 0, e = (raw & 4) != 0, w = (raw & 8) != 0;
++        final boolean ne = (raw & 16) != 0, nw = (raw & 32) != 0, se = (raw & 64) != 0, sw = (raw & 128) != 0;
++        final int cNW = (n && w && nw) ? 1 : 0;
++        final int cNE = (n && e && ne) ? 1 : 0;
++        final int cSW = (s && w && sw) ? 1 : 0;
++        final int cSE = (s && e && se) ? 1 : 0;
++        return (n ? 1 : 0) | (s ? 2 : 0) | (e ? 4 : 0) | (w ? 8 : 0) | (cNW << 4) | (cNE << 5) | (cSW << 6) | (cSE << 7);
++    }
++
++    static {
++        Arrays.fill(SHAPE_BY_SIG, -1);
++        int next = 0;
++        for (int raw = 0; raw < 256; raw++) {
++            final int sg = sig(raw);
++            if (SHAPE_BY_SIG[sg] < 0) {
++                SHAPE_BY_SIG[sg] = next++;
++            }
++        }
++        SHAPE_COUNT = next; // 47
++    }
++
++    /** Bits du voisinage local (n=1, s=2, e=4, w=8, ne=16, nw=32, se=64, sw=128) → index de forme 0..46. */
++    public static int shapeFromRaw(final int raw) {
++        return SHAPE_BY_SIG[sig(raw)];
++    }
++
++    /** Index de la forme « connectée en haut ET en bas, ouverte à gauche/droite » (bande verticale). */
++    public static int shapeNorthSouth() {
++        return shapeFromRaw(1 | 2);
++    }
++}
