@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/TableauFenetreBlock.java
-@@ -1,0 +_,272 @@
+@@ -1,0 +_,264 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -27,9 +27,13 @@
 +// MineAzur — TABLEAU-FENÊTRE (mineazur:tableau_fenetre) : vitre SANS TAIN, vraie, à sens unique.
 +//
 +// CE QU'IL FAIT. D'un côté (le RECTO) : un tableau encadré de bois, parfaitement OPAQUE — on ne voit rien
-+// derrière, c'est un mur décoré. De l'autre : RIEN, on voit à travers comme si le mur n'existait pas. Et la
-+// lumière ne passe dans aucun sens (cf. getLightDampening), donc le poste d'observation reste noir face à une
-+// pièce éclairée.
++// derrière, c'est un mur décoré. De l'autre : RIEN, on voit à travers comme si le mur n'existait pas.
++//
++// LA LUMIÈRE PASSE, ET C'EST VOULU (2026-08-16). Le bloc a d'abord bloqué la lumière, hérité d'une conception
++// où l'asymétrie devait venir de l'ÉCLAIRAGE. Ce n'est plus le cas : le sens unique est GÉOMÉTRIQUE, donc le
++// côté public voit un tableau opaque quoi qu'il arrive et le guetteur reste invisible même si son poste est
++// éclairé. Le blocage ne coûtait plus qu'un défaut : notre case étant noire et le bloc noOcclusion, les faces
++// des blocs VOISINS qui donnent dessus étaient éclairées par du noir — un halo sombre autour du cadre.
 +//
 +// COMMENT, puisque « la transparence n'est pas directionnelle ». Elle ne l'est pas pour un MATÉRIAU — mais
 +// elle l'est pour de la GÉOMÉTRIE. Minecraft rend les faces de modèle avec le backface culling ACTIF
@@ -148,20 +152,8 @@
 +    }
 +
 +    // --- Lumière et traversée ------------------------------------------------------------------------------------
-+    // La lumière est arrêtée dans les DEUX sens (patron TintedGlassBlock, 26.1.2). C'est une exigence du
-+    // dispositif, pas un détail : sans elle, la pièce éclairée illuminerait le poste d'observation à travers
-+    // l'ouverture et le guetteur serait visible. Le bloc reste noOcclusion — le décor voisin doit se dessiner
-+    // et le regard doit passer côté verso : seule la LUMIÈRE est arrêtée.
-+
-+    @Override
-+    protected boolean propagatesSkylightDown(final BlockState state) {
-+        return false;
-+    }
-+
-+    @Override
-+    protected int getLightDampening(final BlockState state) {
-+        return 15;
-+    }
++    // Pas d'override de getLightDampening ni de propagatesSkylightDown : la lumière TRAVERSE, comme du verre
++    // (cf. l'en-tête). Les avoir posés à 15/false noircissait les blocs voisins sans rien protéger.
 +
 +    // « Cube plein » POUR L'ÉCLAIRAGE UNIQUEMENT (cf. l'en-tête) : c'est ce qui rend faceCubic vrai et évite le
 +    // tableau noir, sans donner au bloc une vraie collision de cube plein. N'a d'effet que parce que le bloc
