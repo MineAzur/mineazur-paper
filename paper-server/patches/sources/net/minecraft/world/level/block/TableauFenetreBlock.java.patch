@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/TableauFenetreBlock.java
-@@ -1,0 +_,253 @@
+@@ -1,0 +_,261 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -43,14 +43,22 @@
 +// regarde vers le joueur. C'est ce qui supprime le « bloc d'espace » entre le tableau et son mur — le défaut
 +// signalé en jeu le 2026-08-16, quand le quad était encore du côté de sa propre normale.
 +//
-+// ⚠️ CE QUI REND CE PLACEMENT POSSIBLE : LA COLLISION DE CUBE PLEIN. Lu dans BlockModelLighter (26.1.2), un
-+// quad sans lumière imposée est éclairé par la case du VOISIN seulement si `faceCubic` est vrai, et
-+//     faceCubic = quad plat ET (au bord de la case du côté où il regarde OU state.isCollisionShapeFullBlock)
++// ⚠️ CE QUI REND CE PLACEMENT POSSIBLE : LE COUPLE `cullface` + `ambientocclusion: false` DU MODÈLE.
++// Lu dans BlockModelLighter (26.1.2), un quad dont la lumière n'est PAS imposée (lightCoords = -1) n'est
++// éclairé par la case du VOISIN que si `faceCubic` est vrai, et
++//     faceCubic = quad plat ET (au bord de la case du côté où il regarde OU isCollisionShapeFullBlock)
 +// Un quad plaqué au fond échoue au premier terme — et comme notre case BLOQUE la lumière (getLightDampening),
-+// il serait alors éclairé par du noir : tableau NOIR. Le second terme est donc la seule porte de sortie, d'où
-+// getCollisionShape = cube plein. Ce n'est pas un choix cosmétique : sans lui, ce placement est infaisable
-+// (vérifié dans les sources avant d'écrire — LevelRenderer.getLightCoords n'a AUCUNE logique de secours).
-+// Conséquence assumée et connue de l'utilisateur : le bloc occupe vraiment sa case, on bute dessus.
++// il serait éclairé par du noir : tableau NOIR (LevelRenderer.getLightCoords n'a aucune logique de secours).
++// MAIS un quad qui déclare un `cullface` passe par ModelBlockRenderer.getQuads(direction), où la lumière lui
++// est IMPOSÉE depuis pos.relative(direction) — sans jamais consulter faceCubic. Encore faut-il que le chemin
++// « flat » soit pris : c'est le rôle de `ambientocclusion: false` sur le modèle, la config NeoForge
++// handleAmbientOcclusionPerPart valant `true` par défaut (vérifié dans NeoForgeClientConfig).
++//
++// ⚠️ Ce trio se tient : retirer le `cullface` OU l'`ambientocclusion: false` du modèle fait retomber le rendu
++// sur faceCubic — donc sur un tableau noir. Ne pas les « nettoyer » comme de la décoration.
++// Réserve honnête : un joueur qui force handleAmbientOcclusionPerPart=false dans sa config NeoForge (valeur
++// non par défaut) reverrait un tableau sombre. C'est le prix d'une collision fine ; la seule parade serait de
++// revenir à une collision de cube plein, qui rendait faceCubic vrai mais faisait perdre une case entière.
 +//
 +// Le quad est en outre retiré de 0.5 px du fond : sans ce retrait il serait COPLANAIRE avec la face du bloc
 +// support (qui se dessine, notre bloc étant noOcclusion) — z-fighting garanti, et cette fois bien réel.
@@ -83,9 +91,8 @@
 +    /** Normale du RECTO : les 6 faces (là où le sang mural n'en a que 4). */
 +    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
 +
-+    // Contour de SÉLECTION : la plaque de 0.5 px plaquée contre le SUPPORT (côté FACING.getOpposite()), donc
-+    // collée au tableau qu'on vise — et non le cube entier, qui donnerait un contour flottant devant l'image.
-+    // La COLLISION, elle, est un cube plein (cf. getCollisionShape) : les deux divergent à dessein.
++    // Plaque de 0.5 px plaquée contre le SUPPORT (côté FACING.getOpposite()) : elle sert à la fois de contour
++    // de sélection (on vise l'image, pas une boîte flottant devant) et de collision.
 +    private static final Map<Direction, VoxelShape> SHAPES = Map.of(
 +        Direction.SOUTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
 +        Direction.NORTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
@@ -158,12 +165,13 @@
 +        return 15;
 +    }
 +
-+    // Cube plein — EXIGENCE DE RENDU avant d'être un choix de gameplay : c'est `isCollisionShapeFullBlock` qui
-+    // rend `faceCubic` vrai et permet donc d'éclairer un quad plaqué au fond de sa case (cf. l'en-tête). Le
-+    // ramener à la plaque fine rendrait le tableau NOIR. Effet de bord assumé : on bute sur la case entière.
++    // La case reste TRAVERSABLE en dehors de la plaque : on peut s'approcher du tableau jusqu'au mur, et se
++    // tenir dans l'embrasure côté observation. (Il y a eu une collision de cube plein ici, imposée par le
++    // rendu ; le couple cullface + ambientocclusion:false l'a rendue inutile — cf. l'en-tête.) La plaque, elle,
++    // barre bien le passage : une fois le bloc de mur cassé derrière, on ne traverse pas la vitre.
 +    @Override
-+    protected VoxelShape getCollisionShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
-+        return Shapes.block();
++    protected VoxelShape getVisualShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
++        return Shapes.empty();
 +    }
 +
 +    // --- Connexion ---------------------------------------------------------------------------------------------
