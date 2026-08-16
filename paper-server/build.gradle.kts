@@ -286,6 +286,34 @@ fun TaskContainer.registerRunTask(
     minHeapSize = "${memoryGb}G"
     maxHeapSize = "${memoryGb}G"
 
+    // MineAzur — `-Pmineazur.offline` : démarrer le serveur de DEV sans authentification Mojang, SANS jamais
+    // toucher à run/server.properties.
+    //
+    // ⚠️ POURQUOI PAS SIMPLEMENT `--online-mode false`. L'option CLI existe bien (CraftBukkit Main la déclare,
+    // alias `-o`) et elle prime effectivement sur le fichier — mais elle y serait ÉCRITE : au démarrage,
+    // net/minecraft/server/Main appelle `settings.forceSave()`, et `Settings.getStringRaw` réinjecte la valeur
+    // surchargée dans les properties sauvegardées. Le fichier ressortirait donc durablement en `online-mode=false`,
+    // soit exactement ce qu'on veut éviter — et un serveur laissé en offline sans le savoir est un trou béant.
+    // On passe donc par `--config`, qui déporte LECTURE et ÉCRITURE sur un fichier séparé.
+    //
+    // Ce fichier est REGÉNÉRÉ à chaque lancement depuis server.properties : une seule config à maintenir, et
+    // aucune dérive silencieuse entre les deux.
+    val offlineProp = providers.gradleProperty("mineazur.offline")
+    if (offlineProp.isPresent && offlineProp.get() != "false") {
+        val offlineFile = "server-offline.properties"
+        args("--config", offlineFile)
+        doFirst {
+            // mkdirs ici aussi : Gradle exécute les `doFirst` dans l'ordre INVERSE d'ajout, donc celui-ci
+            // tourne AVANT le `doFirst { workingDir.mkdirs() }` déclaré plus bas.
+            workingDir.mkdirs()
+            val source = workingDir.resolve("server.properties")
+            val lines = if (source.isFile) source.readLines().filterNot { it.startsWith("online-mode=") } else emptyList()
+            workingDir.resolve(offlineFile).writeText((lines + "online-mode=false").joinToString("\n", postfix = "\n"))
+            logger.lifecycle("[MineAzur] MODE OFFLINE — authentification Mojang DÉSACTIVÉE ($offlineFile ; server.properties intact).")
+            logger.lifecycle("[MineAzur] ⚠️ Les UUID sont dérivés du PSEUDO, pas de Mojang : claims, coffres et économie ne correspondront pas à ceux d'une session online.")
+        }
+    }
+
     doFirst {
         workingDir.mkdirs()
     }
