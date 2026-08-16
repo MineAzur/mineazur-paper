@@ -6,7 +6,7 @@
 #
 # ⚠️ Synchronisé par docs/scripts/sync_server_version.py — NE PAS éditer à la main : bumper le changelog puis
 # relancer le script (cf. CLAUDE.md règle 6 et skill mineazur-publish §D).
-server-version: "0.1.3"
+server-version: "0.2.0"
 
 # Bornes de changelog — HEAD de chaque repo serveur au moment du bump vers la version indiquée.
 # Écrites automatiquement par docs/scripts/sync_server_version.py, uniquement quand la version CHANGE.
@@ -18,6 +18,19 @@ server-version: "0.1.3"
 #    jamais y retirer une note sans la promouvoir dans une version, elle deviendrait introuvable.
 # Plus récent en haut. Ne pas éditer à la main.
 changelog-bornes:
+  0.2.0:
+    Paper: 8cddbcf2f0f7
+    docs: 6af4abfedf76
+    shared: df58e02da125
+    mineazur-commerce: 89e53d4325bc
+    mineazur-claim: b3f45fd6db33
+    mineazur-lock: 199f11d9ec4f
+    mineazur-lift: 207f025a7156
+    mineazur-jobs: a94cdd7fa7f9
+    mineazur-quests: 4b633f2701f6
+    mineazur-events: ff649d5c9a96
+    mineazur-replay: 24c17b9f32bb
+    mineazur-convert: 8fdf00207791
   0.1.3:
     Paper: 14191287992b
     docs: 5bd75322f9e7
