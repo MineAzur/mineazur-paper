@@ -86,7 +86,7 @@ public final class MineazurConfig {
         # Les plugins maison en héritent AUTOMATIQUEMENT au build ; ce champ-ci est la copie que le serveur
         # annonce au démarrage, synchronisée par docs/scripts/sync_server_version.py.
         # Une valeur 0.0.0-dev signifie « jamais synchronisée » (et non « version 0 »).
-        server-version: "0.2.0"
+        server-version: "0.2.1"
         """;
 
     private static MineazurConfig load() {
