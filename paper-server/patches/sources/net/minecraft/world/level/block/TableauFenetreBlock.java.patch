@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/TableauFenetreBlock.java
-@@ -1,0 +_,261 @@
+@@ -1,0 +_,246 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -38,40 +38,25 @@
 +// quad, côté recto. Depuis le verso il n'y a aucune géométrie à dessiner, et le regard file jusqu'au décor
 +// d'en face. Rien à voir avec de l'alpha : c'est un mur d'un côté, du vide de l'autre.
 +//
-+// GÉOMÉTRIE : LE TABLEAU EST ACCROCHÉ AU SUPPORT, comme un vrai tableau. Le quad n'est PAS du côté vers lequel
-+// il regarde : il est plaqué au FOND de la case, contre le bloc visé (support en FACING.getOpposite()), et
-+// regarde vers le joueur. C'est ce qui supprime le « bloc d'espace » entre le tableau et son mur — le défaut
-+// signalé en jeu le 2026-08-16, quand le quad était encore du côté de sa propre normale.
++// GÉOMÉTRIE : LE QUAD EST AU BORD AVANT DE SA CASE, du côté où il regarde. C'est ce qui rend `faceCubic` vrai
++// PAR POSITION, et donc ce qui fait éclairer le tableau par la pièce qui le regarde.
 +//
-+// ⚠️ CE QUI REND CE PLACEMENT POSSIBLE : LE COUPLE `cullface` + `ambientocclusion: false` DU MODÈLE.
-+// Lu dans BlockModelLighter (26.1.2), un quad dont la lumière n'est PAS imposée (lightCoords = -1) n'est
-+// éclairé par la case du VOISIN que si `faceCubic` est vrai, et
++// ⚠️ NE PAS LE PLAQUER AU FOND DE LA CASE (contre le support). Ça a été essayé — pour coller le tableau au mur
++// même posé devant un mur intact — et ça rend le tableau NOIR. Lu dans BlockModelLighter (26.1.2) :
 +//     faceCubic = quad plat ET (au bord de la case du côté où il regarde OU isCollisionShapeFullBlock)
-+// Un quad plaqué au fond échoue au premier terme — et comme notre case BLOQUE la lumière (getLightDampening),
-+// il serait éclairé par du noir : tableau NOIR (LevelRenderer.getLightCoords n'a aucune logique de secours).
-+// MAIS un quad qui déclare un `cullface` passe par ModelBlockRenderer.getQuads(direction), où la lumière lui
-+// est IMPOSÉE depuis pos.relative(direction) — sans jamais consulter faceCubic. Encore faut-il que le chemin
-+// « flat » soit pris : c'est le rôle de `ambientocclusion: false` sur le modèle, la config NeoForge
-+// handleAmbientOcclusionPerPart valant `true` par défaut (vérifié dans NeoForgeClientConfig).
++// et sans faceCubic, le quad est éclairé par NOTRE case, qui bloque la lumière (getLightDampening).
++// Les deux contournements essayés ont échoué ou coûté trop cher :
++//   - collision de cube plein : marche (2ᵉ terme), mais le bloc occupe alors toute sa case — on bute dessus ;
++//   - `cullface` + `ambientocclusion: false` (censés imposer la lumière du voisin sans passer par faceCubic) :
++//     les clés sont bonnes et la rotation les suit, mais EN JEU le tableau restait sombre. Piste abandonnée.
++// Conséquence acceptée (choix utilisateur du 2026-08-16) : posé DEVANT un mur intact, le tableau flotte à un
++// bloc du mur. Le geste juste est celui du concept d'origine — CASSER le bloc de mur et poser le tableau à sa
++// place : il est alors affleurant, sans espace, éclairé, et sa collision se limite à la vitre.
 +//
-+// ⚠️ Ce trio se tient : retirer le `cullface` OU l'`ambientocclusion: false` du modèle fait retomber le rendu
-+// sur faceCubic — donc sur un tableau noir. Ne pas les « nettoyer » comme de la décoration.
-+// Réserve honnête : un joueur qui force handleAmbientOcclusionPerPart=false dans sa config NeoForge (valeur
-+// non par défaut) reverrait un tableau sombre. C'est le prix d'une collision fine ; la seule parade serait de
-+// revenir à une collision de cube plein, qui rendait faceCubic vrai mais faisait perdre une case entière.
-+//
-+// Le quad est en outre retiré de 0.5 px du fond : sans ce retrait il serait COPLANAIRE avec la face du bloc
-+// support (qui se dessine, notre bloc étant noOcclusion) — z-fighting garanti, et cette fois bien réel.
-+//
-+// LA CONTRAINTE, qui explique le geste du joueur. Un bloc COLLÉ sur un mur ne perce rien : pour voir à travers,
-+// le tableau REMPLACE le bloc de mur. Le geste est donc « casser le bloc de mur, poser le tableau à sa place »
-+// — et non « accrocher un tableau ».
-+//
-+// ORIENTATION (6 faces). FACING est la direction vers laquelle le tableau REGARDE ; son support est donc en
-+// FACING.getOpposite() — la convention de WallTorchBlock. À la pose, le tableau se présente FACE AU POSEUR,
-+// accroché au bloc visé : on accroche son tableau en le regardant, comme une torche ou une pancarte. Pour
-+// obtenir la vue traversante, on casse ensuite le bloc de mur DERRIÈRE le tableau : le tableau reste (il n'a
-+// aucun canSurvive) et l'on voit alors à travers depuis l'autre pièce.
++// ORIENTATION (6 faces). FACING est la direction vers laquelle le tableau REGARDE, et c'est aussi la face de la
++// case contre laquelle son quad est plaqué. À la pose, le tableau se présente FACE AU POSEUR. Pour obtenir la
++// vue traversante, on remplace un bloc de mur par le tableau : de son côté le tableau est affleurant, et de
++// l'autre on voit à travers (le dos du quad n'existe pas).
 +//
 +// RACCORD. Table blob 47 partagée avec le sang (MineazurBlobTiling), appliquée DANS LE PLAN DE LA FACE. La
 +// nouveauté par rapport au sang : deux vitres ne se raccordent que si elles ont le MÊME facing — deux faces
@@ -91,15 +76,16 @@
 +    /** Normale du RECTO : les 6 faces (là où le sang mural n'en a que 4). */
 +    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
 +
-+    // Plaque de 0.5 px plaquée contre le SUPPORT (côté FACING.getOpposite()) : elle sert à la fois de contour
-+    // de sélection (on vise l'image, pas une boîte flottant devant) et de collision.
++    // Plaque de 0.5 px au bord AVANT de la case, alignée sur le quad du modèle (qui doit, lui, être exactement
++    // au plan — cf. l'en-tête). Sert à la fois de contour de sélection et de collision : le reste de la case
++    // est traversable, et la plaque barre le passage une fois le mur ouvert.
 +    private static final Map<Direction, VoxelShape> SHAPES = Map.of(
-+        Direction.SOUTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
-+        Direction.NORTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
-+        Direction.EAST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
-+        Direction.WEST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0),
-+        Direction.UP, Block.box(0.0, 0.0, 0.0, 16.0, 0.5, 16.0),
-+        Direction.DOWN, Block.box(0.0, 15.5, 0.0, 16.0, 16.0, 16.0)
++        Direction.SOUTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
++        Direction.NORTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
++        Direction.EAST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0),
++        Direction.WEST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
++        Direction.UP, Block.box(0.0, 15.5, 0.0, 16.0, 16.0, 16.0),
++        Direction.DOWN, Block.box(0.0, 0.0, 0.0, 16.0, 0.5, 16.0)
 +    );
 +
 +    // REPÈRE LOCAL de la tuile, par facing : {haut, droite} exprimés en directions du MONDE.
@@ -165,10 +151,9 @@
 +        return 15;
 +    }
 +
-+    // La case reste TRAVERSABLE en dehors de la plaque : on peut s'approcher du tableau jusqu'au mur, et se
-+    // tenir dans l'embrasure côté observation. (Il y a eu une collision de cube plein ici, imposée par le
-+    // rendu ; le couple cullface + ambientocclusion:false l'a rendue inutile — cf. l'en-tête.) La plaque, elle,
-+    // barre bien le passage : une fois le bloc de mur cassé derrière, on ne traverse pas la vitre.
++    // La case reste TRAVERSABLE en dehors de la plaque : on peut se tenir dans l'embrasure, côté observation.
++    // (Il y a eu une collision de cube plein ici, imposée par le rendu ; ramener le quad au bord de sa case l'a
++    // rendue inutile — cf. l'en-tête.) La plaque barre bien le passage : le mur ouvert, on ne traverse pas.
 +    @Override
 +    protected VoxelShape getVisualShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
 +        return Shapes.empty();
