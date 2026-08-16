@@ -1,6 +1,6 @@
 --- /dev/null
 +++ b/net/minecraft/world/level/block/TableauFenetreBlock.java
-@@ -1,0 +_,246 @@
+@@ -1,0 +_,272 @@
 +package net.minecraft.world.level.block;
 +
 +import com.mojang.serialization.MapCodec;
@@ -38,25 +38,37 @@
 +// quad, côté recto. Depuis le verso il n'y a aucune géométrie à dessiner, et le regard file jusqu'au décor
 +// d'en face. Rien à voir avec de l'alpha : c'est un mur d'un côté, du vide de l'autre.
 +//
-+// GÉOMÉTRIE : LE QUAD EST AU BORD AVANT DE SA CASE, du côté où il regarde. C'est ce qui rend `faceCubic` vrai
-+// PAR POSITION, et donc ce qui fait éclairer le tableau par la pièce qui le regarde.
++// GÉOMÉTRIE : LE QUAD EST PLAQUÉ AU FOND DE LA CASE, contre le support — c'est ce qui fait AFFLEURER le
++// tableau avec le mur sur lequel on l'accroche, au lieu de le laisser flotter un bloc en avant.
 +//
-+// ⚠️ NE PAS LE PLAQUER AU FOND DE LA CASE (contre le support). Ça a été essayé — pour coller le tableau au mur
-+// même posé devant un mur intact — et ça rend le tableau NOIR. Lu dans BlockModelLighter (26.1.2) :
++// ⚠️ CE QUI REND CE PLACEMENT POSSIBLE : L'OVERRIDE DE isCollisionShapeFullBlock, ET LUI SEUL.
++// Lu dans BlockModelLighter (26.1.2), un quad n'est éclairé par la case du VOISIN que si `faceCubic` est vrai :
 +//     faceCubic = quad plat ET (au bord de la case du côté où il regarde OU isCollisionShapeFullBlock)
-+// et sans faceCubic, le quad est éclairé par NOTRE case, qui bloque la lumière (getLightDampening).
-+// Les deux contournements essayés ont échoué ou coûté trop cher :
-+//   - collision de cube plein : marche (2ᵉ terme), mais le bloc occupe alors toute sa case — on bute dessus ;
-+//   - `cullface` + `ambientocclusion: false` (censés imposer la lumière du voisin sans passer par faceCubic) :
-+//     les clés sont bonnes et la rotation les suit, mais EN JEU le tableau restait sombre. Piste abandonnée.
-+// Conséquence acceptée (choix utilisateur du 2026-08-16) : posé DEVANT un mur intact, le tableau flotte à un
-+// bloc du mur. Le geste juste est celui du concept d'origine — CASSER le bloc de mur et poser le tableau à sa
-+// place : il est alors affleurant, sans espace, éclairé, et sa collision se limite à la vitre.
++// Un quad plaqué au fond échoue au premier terme, et notre case bloque la lumière ⇒ tableau NOIR.
++// On satisfait donc le SECOND terme — mais sans payer une vraie collision de cube plein, qui ferait perdre la
++// case entière (« le bloc prend un bloc »). Le tour de passe-passe :
++//   1. `dynamicShape()` dans les Properties ⇒ BlockStateBase.initCache ne construit PAS le cache de shapes
++//      (BlockBehaviour:602), donc isCollisionShapeFullBlock n'est plus lu depuis un booléen figé…
++//   2. …mais délégué au bloc (BlockBehaviour:1033) — donc à l'override ci-dessous, qui répond `true`.
++// Résultat : « cube plein » POUR L'ÉCLAIRAGE, plaque fine POUR LA COLLISION. On voit le tableau affleurant,
++// éclairé, et on ne bute pas dessus.
 +//
-+// ORIENTATION (6 faces). FACING est la direction vers laquelle le tableau REGARDE, et c'est aussi la face de la
-+// case contre laquelle son quad est plaqué. À la pose, le tableau se présente FACE AU POSEUR. Pour obtenir la
-+// vue traversante, on remplace un bloc de mur par le tableau : de son côté le tableau est affleurant, et de
-+// l'autre on voit à travers (le dos du quad n'existe pas).
++// ⚠️ CE MENSONGE SE PAIE, ET IL EST PAYÉ ICI. Tout ce que MC déduit de isCollisionShapeFullBlock devient faux
++// et doit être neutralisé explicitement (cf. MineazurGeneratedContent pour l'archétype `connected_panel`) :
++// conduction de redstone, étouffement et occultation de la vue sont forcés à `false` dans les Properties, et
++// getShadeBrightness est réécrit ci-dessous (son défaut renvoie 0.2 pour un cube plein, BlockBehaviour:332).
++// Seul isPathfindable reste affecté — les mobs traitent la case comme infranchissable, ce qui est exactement
++// la vérité puisque la plaque barre le passage.
++//
++// Historique des impasses, pour ne pas les refaire :
++//   - quad au bord AVANT de la case : éclairé, mais le tableau flotte à un bloc du mur (rejeté en jeu) ;
++//   - vraie collision de cube plein : éclairé et affleurant, mais le bloc occupe sa case (rejeté en jeu) ;
++//   - `cullface` + `ambientocclusion: false` censés imposer la lumière du voisin : sombre en jeu, abandonné.
++//
++// ORIENTATION (6 faces). FACING est la direction vers laquelle le tableau REGARDE ; son support est donc en
++// FACING.getOpposite() (convention WallTorchBlock), et c'est contre CE côté que le quad est plaqué. À la pose,
++// le tableau se présente FACE AU POSEUR, affleurant sur le mur visé. Pour la vue traversante, on casse ensuite
++// le bloc de mur DERRIÈRE : le tableau reste (aucun canSurvive) et l'on voit à travers depuis l'autre pièce.
 +//
 +// RACCORD. Table blob 47 partagée avec le sang (MineazurBlobTiling), appliquée DANS LE PLAN DE LA FACE. La
 +// nouveauté par rapport au sang : deux vitres ne se raccordent que si elles ont le MÊME facing — deux faces
@@ -76,16 +88,16 @@
 +    /** Normale du RECTO : les 6 faces (là où le sang mural n'en a que 4). */
 +    public static final EnumProperty<Direction> FACING = BlockStateProperties.FACING;
 +
-+    // Plaque de 0.5 px au bord AVANT de la case, alignée sur le quad du modèle (qui doit, lui, être exactement
-+    // au plan — cf. l'en-tête). Sert à la fois de contour de sélection et de collision : le reste de la case
-+    // est traversable, et la plaque barre le passage une fois le mur ouvert.
++    // Plaque de 0.5 px plaquée contre le SUPPORT (côté FACING.getOpposite()), alignée sur le quad du modèle.
++    // Sert à la fois de contour de sélection et de collision : le reste de la case reste traversable — on
++    // s'approche du tableau jusqu'au mur — et la plaque barre le passage une fois le mur ouvert.
 +    private static final Map<Direction, VoxelShape> SHAPES = Map.of(
-+        Direction.SOUTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
-+        Direction.NORTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
-+        Direction.EAST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0),
-+        Direction.WEST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
-+        Direction.UP, Block.box(0.0, 15.5, 0.0, 16.0, 16.0, 16.0),
-+        Direction.DOWN, Block.box(0.0, 0.0, 0.0, 16.0, 0.5, 16.0)
++        Direction.SOUTH, Block.box(0.0, 0.0, 0.0, 16.0, 16.0, 0.5),
++        Direction.NORTH, Block.box(0.0, 0.0, 15.5, 16.0, 16.0, 16.0),
++        Direction.EAST, Block.box(0.0, 0.0, 0.0, 0.5, 16.0, 16.0),
++        Direction.WEST, Block.box(15.5, 0.0, 0.0, 16.0, 16.0, 16.0),
++        Direction.UP, Block.box(0.0, 0.0, 0.0, 16.0, 0.5, 16.0),
++        Direction.DOWN, Block.box(0.0, 15.5, 0.0, 16.0, 16.0, 16.0)
 +    );
 +
 +    // REPÈRE LOCAL de la tuile, par facing : {haut, droite} exprimés en directions du MONDE.
@@ -151,9 +163,23 @@
 +        return 15;
 +    }
 +
++    // « Cube plein » POUR L'ÉCLAIRAGE UNIQUEMENT (cf. l'en-tête) : c'est ce qui rend faceCubic vrai et évite le
++    // tableau noir, sans donner au bloc une vraie collision de cube plein. N'a d'effet que parce que le bloc
++    // déclare `dynamicShape()` — sans quoi le cache figé de BlockStateBase court-circuite cet override.
++    @Override
++    protected boolean isCollisionShapeFullBlock(final BlockState state, final BlockGetter level, final BlockPos pos) {
++        return true;
++    }
++
++    // Conséquence directe de l'override ci-dessus : le défaut de getShadeBrightness renvoie 0.2 dès que
++    // isCollisionShapeFullBlock est vrai (BlockBehaviour:332), ce qui assombrirait le tableau — précisément ce
++    // qu'on cherche à éviter. On reprend la valeur du verre.
++    @Override
++    protected float getShadeBrightness(final BlockState state, final BlockGetter level, final BlockPos pos) {
++        return 1.0F;
++    }
++
 +    // La case reste TRAVERSABLE en dehors de la plaque : on peut se tenir dans l'embrasure, côté observation.
-+    // (Il y a eu une collision de cube plein ici, imposée par le rendu ; ramener le quad au bord de sa case l'a
-+    // rendue inutile — cf. l'en-tête.) La plaque barre bien le passage : le mur ouvert, on ne traverse pas.
 +    @Override
 +    protected VoxelShape getVisualShape(final BlockState state, final BlockGetter level, final BlockPos pos, final CollisionContext context) {
 +        return Shapes.empty();

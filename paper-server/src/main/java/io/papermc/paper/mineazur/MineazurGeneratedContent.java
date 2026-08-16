@@ -200,6 +200,17 @@ public final class MineazurGeneratedContent {
                         props.randomTicks();
                     }
                 }
+                if ("connected_panel".equals(s.archetype())) {
+                    // Tableau-fenêtre : le bloc se DÉCLARE « cube plein de collision » pour l'éclairage seul
+                    // (cf. l'en-tête de TableauFenetreBlock). `dynamicShape` est ce qui rend l'override
+                    // effectif — sans lui, le cache figé de BlockStateBase le court-circuite.
+                    // Les trois prédicats neutralisent ce que MC DÉDUIT de ce booléen : sans eux, une simple
+                    // plaque conduirait la redstone, étoufferait le joueur et lui boucherait la vue.
+                    props.dynamicShape()
+                        .isRedstoneConductor((state, level, pos) -> false)
+                        .isSuffocating((state, level, pos) -> false)
+                        .isViewBlocking((state, level, pos) -> false);
+                }
                 props.setId(key);
                 block = create(s, props);
             }
