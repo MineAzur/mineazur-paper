@@ -351,9 +351,9 @@ public final class MineazurGeneratedContent {
             switch (s.archetype()) {
                 case "food" -> {
                     if ("biere".equals(s.name())) {
-                        configureBiere(props, s);
+                        configureBeer(props, s);
                     } else if (s.effectId() != null) {
-                        configurePlatAEffet(props, s);
+                        configureEffectFood(props, s);
                     } else {
                         props.food(new FoodProperties.Builder().nutrition(s.nutrition()).saturationModifier(s.saturation()).build());
                     }
@@ -421,19 +421,19 @@ public final class MineazurGeneratedContent {
      * « À la consommation », et un défaut de composant par défaut entre les deux côtés se voit à l'écran.
      * Le gating, lui, reste au CRAFT : n'importe qui peut manger un plat qu'on lui donne.
      */
-    private static void configurePlatAEffet(final Item.Properties props, final ItemSpec s) {
+    private static void configureEffectFood(final Item.Properties props, final ItemSpec s) {
         final FoodProperties food = new FoodProperties.Builder()
             .nutrition(s.nutrition()).saturationModifier(s.saturation()).build();
         final Consumable consumable = Consumables.defaultFood()
             .onConsume(new ApplyStatusEffectsConsumeEffect(List.of(
-                new MobEffectInstance(effet(s.effectId()), s.effectSeconds() * 20, s.effectAmplifier()))))
+                new MobEffectInstance(effect(s.effectId()), s.effectSeconds() * 20, s.effectAmplifier()))))
             .build();
         props.food(food, consumable);
     }
 
     // Effets utilisés par les plats. Volontairement une liste FERMÉE : un identifiant inconnu doit exploser au
     // boot (contenu mal saisi) plutôt que produire silencieusement un plat sans effet.
-    private static Holder<MobEffect> effet(final String id) {
+    private static Holder<MobEffect> effect(final String id) {
         return switch (id) {
             case "speed" -> MobEffects.SPEED;
             case "haste" -> MobEffects.HASTE;
@@ -444,7 +444,7 @@ public final class MineazurGeneratedContent {
         };
     }
 
-    private static void configureBiere(final Item.Properties props, final ItemSpec s) {
+    private static void configureBeer(final Item.Properties props, final ItemSpec s) {
         final FoodProperties food = new FoodProperties.Builder()
             .nutrition(s.nutrition()).saturationModifier(s.saturation()).alwaysEdible().build();
         final Consumable consumable = Consumables.defaultDrink()
@@ -452,9 +452,9 @@ public final class MineazurGeneratedContent {
                 new MobEffectInstance(MobEffects.NAUSEA, 1200, 10))))
             .build();
         props.food(food, consumable).stacksTo(1);
-        final Item chope = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(NS, "chope"));
-        if (chope != null && chope != Items.AIR) {
-            props.usingConvertsTo(chope);
+        final Item mug = BuiltInRegistries.ITEM.getValue(Identifier.fromNamespaceAndPath(NS, "chope"));
+        if (mug != null && mug != Items.AIR) {
+            props.usingConvertsTo(mug);
         }
     }
 
